@@ -208,15 +208,30 @@ function fadeAsset(element, src, alt) {
     return;
   }
 
-  element.style.opacity = '0';
-  element.style.transform = 'scale(0.96)';
+  const previousSrc = currentSrc || '';
+  const previousAlt = element.getAttribute('alt') || '';
 
-  window.setTimeout(() => {
+  element.style.opacity = '0';
+  element.style.transform = 'scale(0.97)';
+
+  const nextImage = new Image();
+  nextImage.src = src;
+
+  nextImage.onload = () => {
+    window.setTimeout(() => {
+      element.setAttribute('src', src);
+      element.setAttribute('alt', alt);
+      element.style.opacity = '1';
+      element.style.transform = 'scale(1)';
+    }, 120);
+  };
+
+  if (!previousSrc) {
     element.setAttribute('src', src);
     element.setAttribute('alt', alt);
     element.style.opacity = '1';
     element.style.transform = 'scale(1)';
-  }, 180);
+  }
 }
 
 function applyTheme(themeName) {
