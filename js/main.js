@@ -40,6 +40,7 @@ import { db } from "./firebase.js";
 import {
   doc,
   getDoc,
+  onSnapshot,
   setDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -63,7 +64,49 @@ function getThemesFromConfig(config) {
   if (config.showGanamos) selected.push("ganamos");
   if (config.showZeus) selected.push("zeus");
   if (config.showApostamos) selected.push("apostamos");
-  return selected;
+  return selected.length ? selected : null;
+}
+
+function getConfigFromThemes(themes) {
+  return {
+    showGanamos: themes.includes("ganamos"),
+    showZeus: themes.includes("zeus"),
+    showApostamos: themes.includes("apostamos")
+  };
+}
+
+function setCheckboxStates(themes) {
+  const checkboxInputs = document.querySelectorAll('input[name="theme-select"][type="checkbox"]');
+  if (!checkboxInputs.length) return;
+
+  checkboxInputs.forEach((input) => {
+    input.checked = themes.includes(input.value);
+  });
+}
+
+function applyRemoteThemes(remoteThemes) {
+  const normalized = normalizeThemes(remoteThemes);
+  if (!normalized.length) return;
+
+  activeThemes = normalized;
+  activeTheme = activeThemes[0];
+  setCheckboxStates(activeThemes);
+  applyTheme(activeTheme);
+}
+
+async function observeRemoteConfig() {
+  try {
+    onSnapshot(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), (snapshot) => {
+      if (!snapshot.exists()) return;
+      const config = snapshot.data();
+      const remoteThemes = getThemesFromConfig(config);
+      if (remoteThemes) {
+        applyRemoteThemes(remoteThemes);
+      }
+    });
+  } catch (error) {
+    console.error("Error suscribiéndose a la configuración remota:", error);
+  }
 }
 
 async function saveRemoteConfig(config) {
@@ -246,6 +289,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderContent();
   setViewportHeight();
   applyTheme(activeTheme);
+  setCheckboxStates(activeThemes);
+  observeRemoteConfig();
 
   const whatsappButton = document.getElementById('whatsapp-button');
   if (whatsappButton) {
@@ -277,11 +322,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const primary = setActiveThemes(selected);
         applyTheme(primary);
 
-        await saveRemoteConfig({
-          showGanamos: selected.includes("ganamos"),
-          showZeus: selected.includes("zeus"),
-          showApostamos: selected.includes("apostamos")
-        });
+        await saveRemoteConfig(getConfigFromThemes(selected));
       });
     });
   }
