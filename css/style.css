@@ -114,6 +114,11 @@ input {
   font: inherit;
 }
 
+.fallback {
+  display: none;
+}
+
+
 /* ===========================
 Animated background
 =========================== */
