@@ -22,28 +22,6 @@
         <p class="settings-eyebrow">Configuración</p>
         <h1>Seleccioná los casinos activos</h1>
         <p class="settings-copy">Los logos aparecerán todos juntos en la landing y la mascota cambiará entre los casinos activos.</p>
-
-        <fieldset class="settings-fieldset">
-          <legend class="settings-label">Casinos activos</legend>
-
-          <label class="settings-checkbox">
-            <input type="checkbox" name="theme-select" value="ganamos" />
-            <span>1 - Ganamos</span>
-          </label>
-
-          <label class="settings-checkbox">
-            <input type="checkbox" name="theme-select" value="zeus" />
-            <span>2 - Zeus</span>
-          </label>
-
-          <label class="settings-checkbox">
-            <input type="checkbox" name="theme-select" value="apostamos" />
-            <span>3 - Apostamos</span>
-          </label>
-        </fieldset>
-      </section>
-
-      <section class="settings-card">
         <div class="settings-cards">
           <article class="theme-card is-active" data-theme-card="ganamos">
             <img src="img/logo1.png" alt="Logo Ganamos" class="theme-card__logo" />
@@ -51,6 +29,7 @@
               <h2>1. Ganamos</h2>
               <p>Rosado y naranja</p>
             </div>
+            <input type="checkbox" class="theme-checkbox ganamos" name="theme-select" value="ganamos" />
           </article>
 
           <article class="theme-card" data-theme-card="zeus">
@@ -59,6 +38,7 @@
               <h2>2. Zeus</h2>
               <p>Azules y celestes</p>
             </div>
+            <input type="checkbox" class="theme-checkbox zeus" name="theme-select" value="zeus" />
           </article>
 
           <article class="theme-card" data-theme-card="apostamos">
@@ -67,6 +47,7 @@
               <h2>3. Apostamos</h2>
               <p>Verde y vibrante</p>
             </div>
+            <input type="checkbox" class="theme-checkbox apostamos" name="theme-select" value="apostamos" />
           </article>
         </div>
       </section>

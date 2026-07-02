@@ -522,6 +522,10 @@ Settings page
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.theme-card input {
+  margin-left: auto;
+}
+
 .theme-card.is-active {
   border-color: var(--theme-accent);
   box-shadow: inset 0 0 0 1px var(--theme-accent);
@@ -551,6 +555,52 @@ Settings page
 .settings-footer a {
   color: var(--theme-accent);
   text-decoration: none;
+}
+
+.theme-checkbox {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #1e1e1e;
+  border: 2px solid #555;
+  border-radius: 6px;
+  display: grid;
+  place-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+/* hover */
+.theme-checkbox:hover {
+  border-color: #999;
+  transform: scale(1.05);
+}
+
+/* checked state */
+.theme-checkbox:checked {
+  border-color: transparent;
+}
+
+.theme-checkbox.ganamos:checked {
+  background: linear-gradient(135deg, #ff4df6, #33022c);
+}
+
+.theme-checkbox.zeus:checked {
+  background: linear-gradient(135deg, #4da3ff, #020a33);
+}
+
+.theme-checkbox.apostamos:checked {
+  background: linear-gradient(135deg, #4dff5c, #02330a);
+}
+
+/* check icon */
+.theme-checkbox:checked::after {
+  content: "✔";
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 /* ===========================
