@@ -2,7 +2,7 @@
 const landingContent = {
   accessBadge: 'ACCESO VIP',
   heroTitle: 'OBTENÉ UN <span class="gradient-text">100%</span> EN TU PRIMER DEPÓSITO',
-  heroCopy: 'Escribinos apretando el botón de abajo.',
+  heroCopy: '🢃 Escribinos apretando el botón de abajo 🢃',
   ctaLabel: 'WHATSAPP OFICIAL',
   helperText: 'ATENCIÓN Y RETIROS LAS 24 HS',
   footerText: '© 2026 el juego es solo +18. Operá con responsabilidad.'
@@ -190,32 +190,7 @@ function setViewportHeight() {
   document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
 }
 
-function normalizeRoutePath(pathname = window.location.pathname) {
-  const trimmed = pathname.replace(/\/+$/, '') || '/';
-
-  if (trimmed === '/index' || trimmed === '/index.html') {
-    return '/';
-  }
-
-  if (trimmed.endsWith('.html')) {
-    return trimmed.slice(0, -5);
-  }
-
-  return trimmed;
-}
-
-function applyCleanUrl() {
-  const cleanPath = normalizeRoutePath();
-
-  if (window.location.pathname !== cleanPath) {
-    const nextUrl = `${cleanPath}${window.location.search}${window.location.hash}`;
-    window.history.replaceState({}, '', nextUrl);
-  }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  applyCleanUrl();
-
   renderContent();
   setViewportHeight();
   applyTheme(activeTheme);

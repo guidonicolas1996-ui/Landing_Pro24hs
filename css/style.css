@@ -131,7 +131,7 @@ Animated background
   position: absolute;
   display: block;
   border-radius: 50%;
-  filter: blur(70px);
+  filter: blur(150px);
   opacity: 0.8;
   mix-blend-mode: screen;
   will-change: transform, opacity;
@@ -233,7 +233,20 @@ Page layout
 
 .hero-header__mascot {
   width: min(100%, 16rem);
+  position: relative;
   filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.35));
+}
+
+.hero-header__mascot::before {
+  content: "";
+  position: absolute;
+  inset: 12% 16%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--theme-accent) 0%, rgba(255, 255, 255, 0) 72%);
+  opacity: 0.16;
+  filter: blur(20px);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .hero-header__badge {
