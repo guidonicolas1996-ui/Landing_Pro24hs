@@ -28,6 +28,34 @@
           <a href="/index.html" class="btn btn--secondary">Volver</a>
         </div>
 
+        <div class="analytics-controls">
+          <div class="analytics-filter-group">
+            <label for="analytics-range-select">Periodo</label>
+            <select id="analytics-range-select">
+              <option value="today">Hoy</option>
+              <option value="week">Esta semana</option>
+              <option value="month">Este mes</option>
+              <option value="year">Este año</option>
+              <option value="all">Todo el tiempo</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+
+          <div class="analytics-filter-group">
+            <label for="analytics-start">Desde</label>
+            <input id="analytics-start" type="datetime-local" />
+          </div>
+
+          <div class="analytics-filter-group">
+            <label for="analytics-end">Hasta</label>
+            <input id="analytics-end" type="datetime-local" />
+          </div>
+
+          <button id="analytics-refresh" class="btn btn--primary">Mostrar</button>
+        </div>
+
+        <div id="analytics-message" class="analytics-message">Mostrando datos para hoy por defecto.</div>
+
         <div id="analytics-content" class="analytics-panel">
           <div class="analytics-card">
             <h3>Visitas únicas</h3>
@@ -50,6 +78,11 @@
             <p id="analytics-whatsapp">Cargando...</p>
           </div>
         </div>
+
+        <section class="analytics-breakdown-card">
+          <h3>Detalle por hora</h3>
+          <div id="analytics-breakdown" class="analytics-breakdown">Cargando...</div>
+        </section>
       </section>
     </main>
 
@@ -57,27 +90,210 @@
       import { db } from './js/firebase.js';
       import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
+      const rangeSelect = document.getElementById('analytics-range-select');
+      const startInput = document.getElementById('analytics-start');
+      const endInput = document.getElementById('analytics-end');
+      const refreshButton = document.getElementById('analytics-refresh');
+      const messageElement = document.getElementById('analytics-message');
+      const breakdownElement = document.getElementById('analytics-breakdown');
+
+      function toLocalDateTimeString(date) {
+        const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 16);
+      }
+
+      function createRange(preset) {
+        const now = new Date();
+        const start = new Date(now);
+        const end = new Date(now);
+
+        switch (preset) {
+          case 'week': {
+            const day = now.getDay();
+            const diff = day === 0 ? 6 : day - 1;
+            start.setDate(now.getDate() - diff);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+            return { start, end, label: 'Esta semana' };
+          }
+          case 'month': {
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+            end.setMonth(now.getMonth() + 1, 0);
+            end.setHours(23, 59, 59, 999);
+            return { start, end, label: 'Este mes' };
+          }
+          case 'year': {
+            start.setMonth(0, 1);
+            start.setHours(0, 0, 0, 0);
+            end.setMonth(11, 31);
+            end.setHours(23, 59, 59, 999);
+            return { start, end, label: 'Este año' };
+          }
+          case 'all': {
+            start.setTime(0);
+            end.setHours(23, 59, 59, 999);
+            return { start, end, label: 'Todo el tiempo' };
+          }
+          default: {
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+            return { start, end, label: 'Hoy' };
+          }
+        }
+      }
+
+      function setInputsForRange(preset) {
+        const range = createRange(preset);
+        startInput.value = toLocalDateTimeString(range.start);
+        endInput.value = toLocalDateTimeString(range.end);
+        messageElement.textContent = `Mostrando datos para: ${range.label}`;
+      }
+
+      function parseRangeInputs() {
+        const start = new Date(startInput.value);
+        const end = new Date(endInput.value);
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+          throw new Error('Rango de fecha/hora inválido');
+        }
+        return { start, end };
+      }
+
+      function collectBuckets(buckets, rangeStart, rangeEnd) {
+        const items = [];
+        const totals = {
+          uniqueVisitors: 0,
+          totalVisits: 0,
+          primaryLinks: 0,
+          alternativeLinks: 0,
+          whatsappClicks: 0
+        };
+
+        for (const dateKey of Object.keys(buckets)) {
+          const dayBuckets = buckets[dateKey] || {};
+          for (const hourKey of Object.keys(dayBuckets)) {
+            const bucket = dayBuckets[hourKey];
+            const bucketStart = new Date(`${dateKey}T${hourKey}:00:00`);
+            const bucketEnd = new Date(bucketStart.getTime() + 3599999);
+            if (bucketEnd < rangeStart || bucketStart > rangeEnd) {
+              continue;
+            }
+
+            totals.uniqueVisitors += bucket.uniqueVisitors || 0;
+            totals.totalVisits += bucket.totalVisits || 0;
+            totals.primaryLinks += bucket.primaryLinks || 0;
+            totals.alternativeLinks += bucket.alternativeLinks || 0;
+            totals.whatsappClicks += bucket.whatsappClicks || 0;
+            items.push({
+              label: `${dateKey} ${hourKey}:00`,
+              ...bucket
+            });
+          }
+        }
+
+        items.sort((a, b) => a.label.localeCompare(b.label));
+        return { totals, items };
+      }
+
+      function countUniqueVisitors(visitors, rangeStart, rangeEnd) {
+        return Object.values(visitors).filter((visitor) => {
+          const firstSeen = visitor.firstSeen ? new Date(visitor.firstSeen) : null;
+          const lastSeen = visitor.lastSeen ? new Date(visitor.lastSeen) : null;
+          if (!firstSeen || !lastSeen) {
+            return false;
+          }
+          return firstSeen <= rangeEnd && lastSeen >= rangeStart;
+        }).length;
+      }
+
+      function renderBreakdown(items) {
+        if (!items.length) {
+          breakdownElement.innerHTML = '<p>No hay datos en este rango.</p>';
+          return;
+        }
+
+        const rows = items.map((item) => `
+          <tr>
+            <td>${item.label}</td>
+            <td>${item.uniqueVisitors || 0}</td>
+            <td>${item.totalVisits || 0}</td>
+            <td>${item.primaryLinks || 0}</td>
+            <td>${item.alternativeLinks || 0}</td>
+            <td>${item.whatsappClicks || 0}</td>
+          </tr>
+        `).join('');
+
+        breakdownElement.innerHTML = `
+          <div class="analytics-breakdown-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Únicas</th>
+                  <th>Visitas</th>
+                  <th>Principal</th>
+                  <th>Alternativa</th>
+                  <th>WhatsApp</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function displayTotals(totals, visitorCount) {
+        document.getElementById('analytics-unique').textContent = visitorCount;
+        document.getElementById('analytics-total').textContent = totals.totalVisits || 0;
+        document.getElementById('analytics-primary').textContent = totals.primaryLinks || 0;
+        document.getElementById('analytics-alternative').textContent = totals.alternativeLinks || 0;
+        document.getElementById('analytics-whatsapp').textContent = totals.whatsappClicks || 0;
+      }
+
       async function loadAnalytics() {
         try {
           const ref = doc(db, 'analytics', 'landing');
           const snapshot = await getDoc(ref);
+          const range = parseRangeInputs();
           if (!snapshot.exists()) {
             document.getElementById('analytics-content').innerHTML = '<p>No se encontraron datos de analytics aún.</p>';
+            breakdownElement.innerHTML = '';
             return;
           }
+
           const data = snapshot.data();
-          const totals = data.totals || {};
-          document.getElementById('analytics-unique').textContent = totals.uniqueVisitors || 0;
-          document.getElementById('analytics-total').textContent = totals.totalVisits || 0;
-          document.getElementById('analytics-primary').textContent = totals.primaryLinks || 0;
-          document.getElementById('analytics-alternative').textContent = totals.alternativeLinks || 0;
-          document.getElementById('analytics-whatsapp').textContent = totals.whatsappClicks || 0;
+          const visitors = data.visitors || {};
+          const buckets = data.buckets || {};
+          const bucketData = collectBuckets(buckets, range.start, range.end);
+          const visitorCount = countUniqueVisitors(visitors, range.start, range.end);
+
+          displayTotals(bucketData.totals, visitorCount);
+          renderBreakdown(bucketData.items);
+          messageElement.textContent = `Mostrando datos desde ${startInput.value} hasta ${endInput.value}`;
         } catch (error) {
           document.getElementById('analytics-content').innerHTML = '<p>Error cargando analytics.</p>';
+          breakdownElement.innerHTML = '';
           console.error('Error loading analytics:', error);
         }
       }
 
+      rangeSelect.addEventListener('change', () => {
+        if (rangeSelect.value !== 'custom') {
+          setInputsForRange(rangeSelect.value);
+        }
+      });
+
+      refreshButton.addEventListener('click', async () => {
+        try {
+          parseRangeInputs();
+          await loadAnalytics();
+        } catch (error) {
+          messageElement.textContent = error.message;
+          breakdownElement.innerHTML = '';
+        }
+      });
+
+      setInputsForRange('today');
       loadAnalytics();
     </script>
   </body>

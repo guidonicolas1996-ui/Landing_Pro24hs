@@ -518,6 +518,121 @@ Footer
   line-height: 1.4;
 }
 
+.analytics-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.75rem;
+  margin: 1.25rem 0 1.5rem;
+  align-items: end;
+}
+
+.analytics-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.analytics-filter-group label,
+.analytics-filter-group select,
+.analytics-filter-group input {
+  color: var(--color-text);
+}
+
+.analytics-filter-group select,
+.analytics-filter-group input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+}
+
+.analytics-message {
+  color: #9ab3eb;
+  font-size: 0.95rem;
+  margin-top: -0.5rem;
+}
+
+.analytics-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.analytics-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 1.25rem;
+  min-height: 7rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.analytics-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.analytics-card p {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.analytics-breakdown-card {
+  margin-top: 1.5rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 1.25rem;
+}
+
+.analytics-breakdown-card h3 {
+  margin: 0 0 1rem;
+  color: var(--color-muted);
+}
+
+.analytics-breakdown {
+  color: var(--color-text);
+}
+
+.analytics-breakdown-scroll {
+  overflow-x: auto;
+}
+
+.analytics-breakdown table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.analytics-breakdown th,
+.analytics-breakdown td {
+  padding: 0.75rem 0.8rem;
+  text-align: left;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.analytics-breakdown th {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.analytics-breakdown td {
+  color: var(--color-text);
+}
+
+@media (max-width: 960px) {
+  .analytics-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===========================
 Settings page
 =========================== */
