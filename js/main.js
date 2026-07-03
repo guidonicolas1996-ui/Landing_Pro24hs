@@ -137,16 +137,19 @@ async function uploadImageFile(source, casinoId, type) {
   const fileBlob = source instanceof File ? source : dataURLtoBlob(source);
   const fileName = originalMime === 'image/png' ? `${type}.png` : `${type}.jpg`;
 
-  const formData = new FormData();
-  formData.append('file', fileBlob, fileName);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', `${CLOUDINARY_FOLDER}/${casinoId}`);
-  formData.append('public_id', `${type}-${Date.now()}`);
-  formData.append('resource_type', 'image');
-  formData.append('return_delete_token', 'true');
-
   const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-  try {
+
+  const doUpload = async (includeDeleteToken = true) => {
+    const formData = new FormData();
+    formData.append('file', fileBlob, fileName);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', `${CLOUDINARY_FOLDER}/${casinoId}`);
+    formData.append('public_id', `${type}-${Date.now()}`);
+    formData.append('resource_type', 'image');
+    if (includeDeleteToken) {
+      formData.append('return_delete_token', 'true');
+    }
+
     const response = await fetch(uploadUrl, {
       method: 'POST',
       body: formData
@@ -162,19 +165,35 @@ async function uploadImageFile(source, casinoId, type) {
       url: result.secure_url || result.url,
       deleteToken: result.delete_token || null
     };
+  };
+
+  try {
+    return await doUpload(true);
   } catch (error) {
-    console.warn('Cloudinary upload falló, usando fallback base64 para imágenes:', { source, casinoId, type, error });
-    const url = source instanceof File ? await fileToDataURL(source) : source;
-    return { url, deleteToken: null };
+    const errorText = (error.message || '').toLowerCase();
+    if (errorText.includes('return delete token') || errorText.includes('return_delete_token') || errorText.includes('delete token')) {
+      console.warn('Cloudinary upload falló por delete token; reintentando sin token:', { casinoId, type, error });
+      return await doUpload(false);
+    }
+    console.error('Cloudinary upload falló y no se realizará fallback base64 en modo remoto:', { source, casinoId, type, error });
+    throw error;
   }
 }
 
 function getImageUrl(imageRecord) {
-  return typeof imageRecord === 'string' ? imageRecord : (imageRecord && imageRecord.url) ? imageRecord.url : null;
+  return typeof imageRecord === 'string'
+    ? imageRecord
+    : (imageRecord && imageRecord.url)
+      ? imageRecord.url
+      : null;
 }
 
 function getImageDeleteToken(imageRecord) {
-  return typeof imageRecord === 'string' ? null : (imageRecord && imageRecord.deleteToken) ? imageRecord.deleteToken : null;
+  return typeof imageRecord === 'string'
+    ? null
+    : (imageRecord && imageRecord.deleteToken)
+      ? imageRecord.deleteToken
+      : null;
 }
 
 async function deleteCloudinaryImage(deleteToken) {
