@@ -12,14 +12,13 @@ let landingContent = {
 const WHATSAPP_URL = 'https://www.linkify.com.ar/api/soporte?id=k6cipb';
 const MAX_CASINOS = 5;
 const BACKGROUND_IMAGES = ['/img/background1.png', '/img/background2.png', '/img/background3.png', '/img/background4.png', '/img/background5.png'];
-const STORAGE_FOLDER = 'casinos';
 const LOCAL_STORAGE_CASINOS_KEY = 'dynamicCasinos';
-const USE_REMOTE_STORAGE = typeof window !== 'undefined' && window.location.protocol !== 'file:' && !window.location.hostname.includes('localhost');
+const USE_REMOTE_STORAGE = typeof window !== 'undefined' && window.location.protocol !== 'file:';
 
 let dynamicCasinos = {};
 
 // Firebase
-import { db, storage } from "./firebase.js";
+import { db } from "./firebase.js";
 
 import {
   doc,
@@ -27,13 +26,11 @@ import {
   onSnapshot,
   setDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
+// Configuración de Cloudinary. Debes reemplazar estos valores con tu cuenta y preset de carga.
+const CLOUDINARY_CLOUD_NAME = "efcbsldh"; // ej: 'mi-cuenta'
+const CLOUDINARY_UPLOAD_PRESET = "casinos"; // preset público de subida sin firma
+const CLOUDINARY_FOLDER = "casinos";
 const FIRESTORE_COLLECTION = "config";
 const FIRESTORE_DOCUMENT = "landing";
 
@@ -131,18 +128,33 @@ async function uploadImageFile(source, casinoId, type) {
     return source;
   }
 
-  if (!USE_REMOTE_STORAGE) {
+  if (!USE_REMOTE_STORAGE || !CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
     return source instanceof File ? await fileToDataURL(source) : source;
   }
 
-  const path = `${STORAGE_FOLDER}/${casinoId}/${type}-${Date.now()}`;
-  const storageReference = storageRef(storage, path);
-  const blob = source instanceof File ? source : dataURLtoBlob(source);
+  const formData = new FormData();
+  const fileBlob = source instanceof File ? source : dataURLtoBlob(source);
+  formData.append('file', fileBlob);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', `${CLOUDINARY_FOLDER}/${casinoId}`);
+  formData.append('public_id', `${type}-${Date.now()}`);
+
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
   try {
-    await uploadBytes(storageReference, blob);
-    return await getDownloadURL(storageReference);
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cloudinary upload failed (${response.status}): ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result.secure_url || result.url;
   } catch (error) {
-    console.warn('Firebase Storage no disponible, usando fallback base64 para imágenes:', { source, casinoId, type, path, error });
+    console.warn('Cloudinary upload falló, usando fallback base64 para imágenes:', { source, casinoId, type, error });
     return source instanceof File ? await fileToDataURL(source) : source;
   }
 }
