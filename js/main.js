@@ -381,7 +381,7 @@ function setStoredActiveCasinos(casinoIds) {
   // Se maneja a través de dynamicCasinos
 }
 
-function setActiveCasinos(casinoIds) {
+async function setActiveCasinos(casinoIds) {
   const normalized = casinoIds.filter(id => dynamicCasinos[id]);
   const finalCasinos = normalized.length ? normalized : [getDefaultCasino()];
   
