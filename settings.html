@@ -345,7 +345,16 @@
         
         container.innerHTML = '';
 
-        Object.entries(casinos).forEach(([id, casino]) => {
+        Object.entries(casinos)
+          .sort(([a], [b]) => {
+            const aNum = parseInt((a.match(/(\d+)$/) || [])[0] || a, 10);
+            const bNum = parseInt((b.match(/(\d+)$/) || [])[0] || b, 10);
+            if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+              return aNum - bNum;
+            }
+            return a.localeCompare(b);
+          })
+          .forEach(([id, casino]) => {
           // Checkbox card con botón de eliminar
           const card = document.createElement('article');
           card.className = 'theme-card' + (casino.active ? ' is-active' : '');
@@ -371,9 +380,10 @@
           card.querySelector(`[data-delete="${id}"]`).addEventListener('click', async (e) => {
             e.preventDefault();
             if (confirm(`¿Estás seguro de que deseas eliminar "${casino.label}"?`)) {
-                  if (api.removeCasino) await api.removeCasino(id);
-              renderCasinos();
-              location.reload();
+              if (api.removeCasino) {
+                await api.removeCasino(id);
+                await renderCasinos();
+              }
             }
           });
 
@@ -399,22 +409,7 @@
             }
 
             if (api.setActiveCasinos) {
-              api.setActiveCasinos(selected);
-            }
-            
-            // Sincronizar con Firebase
-            if (api.saveRemoteConfig) {
-              const casinosConfig = api.getCasinos ? api.getCasinos() : {};
-              const payload = { casinos: {} };
-
-              Object.entries(casinosConfig).forEach(([casinoId, casino]) => {
-                payload.casinos[casinoId] = {
-                  ...casino,
-                  active: selected.includes(casinoId)
-                };
-              });
-
-              await api.saveRemoteConfig(payload).catch(e => console.warn('Error guardando en Firebase:', e));
+              await api.setActiveCasinos(selected);
             }
             
             renderCasinos();

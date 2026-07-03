@@ -259,12 +259,15 @@ async function addCasino(id, name, logo, mascot, color) {
   const existing = dynamicCasinos[casinoId] || {};
   const active = existing.active || false;
 
+  const logoUrl = typeof logoRecord === 'object' ? logoRecord.url : logoRecord;
+  const mascotUrl = typeof mascotRecord === 'object' ? mascotRecord.url : mascotRecord;
+
   dynamicCasinos[casinoId] = {
     label: name,
-    logo: typeof logoRecord === 'object' ? logoRecord.url : logoRecord,
-    logoDeleteToken: typeof logoRecord === 'object' ? logoRecord.deleteToken : null,
-    mascot: typeof mascotRecord === 'object' ? mascotRecord.url : mascotRecord,
-    mascotDeleteToken: typeof mascotRecord === 'object' ? mascotRecord.deleteToken : null,
+    logo: logoUrl,
+    logoDeleteToken: typeof logoRecord === 'object' ? logoRecord.deleteToken : existing.logoDeleteToken || null,
+    mascot: mascotUrl,
+    mascotDeleteToken: typeof mascotRecord === 'object' ? mascotRecord.deleteToken : existing.mascotDeleteToken || null,
     color: color,
     active: active
   };
@@ -316,7 +319,15 @@ function getThemesFromConfig(config) {
 
   const activeCasinos = Object.entries(config.casinos)
     .filter(([, casino]) => casino && casino.active)
-    .map(([id]) => id);
+    .map(([id]) => id)
+    .sort((a, b) => {
+      const aNum = parseInt((a.match(/(\d+)$/) || [])[0] || a, 10);
+      const bNum = parseInt((b.match(/(\d+)$/) || [])[0] || b, 10);
+      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+        return aNum - bNum;
+      }
+      return a.localeCompare(b);
+    });
 
   return activeCasinos.length ? activeCasinos : null;
 }
@@ -330,18 +341,29 @@ function setCheckboxStates(activeCasinoIds) {
   });
 }
 
+function getSortedCasinoIds() {
+  return Object.keys(dynamicCasinos).sort((a, b) => {
+    const aNum = parseInt((a.match(/(\d+)$/) || [])[0] || a, 10);
+    const bNum = parseInt((b.match(/(\d+)$/) || [])[0] || b, 10);
+    if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+      return aNum - bNum;
+    }
+    return a.localeCompare(b);
+  });
+}
+
 function getActiveCasinos() {
-  return Object.keys(dynamicCasinos).filter(id => dynamicCasinos[id].active);
+  return getSortedCasinoIds().filter(id => dynamicCasinos[id].active);
 }
 
 function getDefaultCasino() {
   const activeCasinos = getActiveCasinos();
-  return activeCasinos.length ? activeCasinos[0] : Object.keys(dynamicCasinos)[0] || 'casino_1';
+  return activeCasinos.length ? activeCasinos[0] : getSortedCasinoIds()[0] || 'casino_1';
 }
 
 function getStoredActiveCasino() {
   const activeCasinos = getActiveCasinos();
-  return activeCasinos.length ? activeCasinos[0] : Object.keys(dynamicCasinos)[0] || 'casino_1';
+  return activeCasinos.length ? activeCasinos[0] : getSortedCasinoIds()[0] || 'casino_1';
 }
 
 function getStoredActiveCasinos() {
@@ -372,7 +394,12 @@ function setActiveCasinos(casinoIds) {
   Object.keys(dynamicCasinos).forEach(id => {
     dynamicCasinos[id].active = finalCasinos.includes(id);
   });
-  saveDynamicCasinos().catch((error) => console.warn('Error guardando estado activo de casinos:', error));
+
+  try {
+    await saveDynamicCasinos();
+  } catch (error) {
+    console.warn('Error guardando estado activo de casinos:', error);
+  }
   
   return activeTheme;
 }
@@ -561,7 +588,12 @@ async function observeRemoteConfig() {
 
 async function saveRemoteConfig(config) {
   try {
-    await setDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), config, { merge: true });
+    const snapshot = await getDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT));
+    const currentConfig = snapshot.exists() ? snapshot.data() : {};
+    await setDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), {
+      ...currentConfig,
+      ...config
+    });
   } catch (error) {
     console.error("Error guardando configuración en Firebase:", error);
   }
