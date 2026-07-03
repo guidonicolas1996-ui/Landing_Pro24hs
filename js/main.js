@@ -10,34 +10,16 @@ let landingContent = {
 };
 
 const WHATSAPP_URL = 'https://www.linkify.com.ar/api/soporte?id=k6cipb';
-const STORAGE_KEY = 'activeCasino';
-const STORAGE_KEY_MULTI = 'activeCasinos';
+const MAX_CASINOS = 5;
 const BACKGROUND_IMAGES = ['/img/background1.png', '/img/background2.png', '/img/background3.png', '/img/background4.png', '/img/background5.png'];
-const themeConfig = {
-  ganamos: {
-    label: 'Ganamos',
-    logos: ['img/logo1.png'],
-    mascot: 'img/mascotG.png',
-    alt: 'Mascota Ganamos'
-  },
-  zeus: {
-    label: 'Zeus',
-    logos: ['img/logo2.png'],
-    mascot: 'img/mascotZ.png',
-    alt: 'Mascota Zeus'
-  },
-  apostamos: {
-    label: 'Apostamos',
-    logos: ['img/logo3.png'],
-    mascot: 'img/mascotA.png',
-    alt: 'Mascota Apostamos'
-  }
-};
+const STORAGE_FOLDER = 'casinos';
+const LOCAL_STORAGE_CASINOS_KEY = 'dynamicCasinos';
+const USE_REMOTE_STORAGE = typeof window !== 'undefined' && window.location.protocol !== 'file:' && !window.location.hostname.includes('localhost');
 
-const THEME_SEQUENCE = Object.keys(themeConfig);
+let dynamicCasinos = {};
 
 // Firebase
-import { db } from "./firebase.js";
+import { db, storage } from "./firebase.js";
 
 import {
   doc,
@@ -45,9 +27,199 @@ import {
   onSnapshot,
   setDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
 const FIRESTORE_COLLECTION = "config";
 const FIRESTORE_DOCUMENT = "landing";
+
+// Generador de variaciones de color
+function generateColorVariations(baseColor) {
+  const rgb = hexToRgb(baseColor);
+  if (!rgb) {
+    return {
+      light: baseColor,
+      medium: baseColor,
+      dark: baseColor,
+      blob1: `rgba(125, 108, 255, 0.9)`,
+      blob2: `rgba(163, 119, 255, 0.8)`,
+      blob3: `rgba(255, 209, 102, 0.78)`,
+      blob4: `rgba(255, 255, 255, 0.24)`,
+      blob5: `rgba(125, 108, 255, 0.4)`
+    };
+  }
+  
+  const light = rgbToHex(Math.min(rgb.r + 80, 255), Math.min(rgb.g + 80, 255), Math.min(rgb.b + 80, 255));
+  const dark = rgbToHex(Math.max(rgb.r - 60, 0), Math.max(rgb.g - 60, 0), Math.max(rgb.b - 60, 0));
+  
+  // Generar variaciones de color para los blobs
+  const blobBase = { r: rgb.r, g: rgb.g, b: rgb.b };
+  const blobLight = { r: Math.min(rgb.r + 40, 255), g: Math.min(rgb.g + 40, 255), b: Math.min(rgb.b + 40, 255) };
+  const blobMediumLight = { r: Math.min(rgb.r + 20, 255), g: Math.min(rgb.g + 20, 255), b: Math.min(rgb.b + 20, 255) };
+  
+  return {
+    light: light,
+    medium: baseColor,
+    dark: dark,
+    blob1: `rgba(${blobBase.r}, ${blobBase.g}, ${blobBase.b}, 0.9)`,
+    blob2: `rgba(${blobLight.r}, ${blobLight.g}, ${blobLight.b}, 0.8)`,
+    blob3: `rgba(${blobMediumLight.r}, ${blobMediumLight.g}, ${blobMediumLight.b}, 0.78)`,
+    blob4: `rgba(255, 255, 255, 0.24)`,
+    blob5: `rgba(${Math.max(rgb.r - 40, 0)}, ${Math.max(rgb.g - 40, 0)}, ${Math.max(rgb.b - 40, 0)}, 0.4)`
+  };
+}
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+}
+
+// Funciones de almacenamiento dinámico de casinos
+function dataURLtoBlob(dataURL) {
+  const [header, base64] = dataURL.split(',');
+  const mimeMatch = header.match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const binary = atob(base64);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    array[i] = binary.charCodeAt(i);
+  }
+  return new Blob([array], { type: mime });
+}
+
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => resolve(event.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function getLocalDynamicCasinos() {
+  try {
+    const stored = localStorage.getItem('dynamicCasinos');
+    return stored ? JSON.parse(stored) : {};
+  } catch (error) {
+    console.warn('Error leyendo casinos locales de localStorage:', error);
+    return {};
+  }
+}
+
+function setLocalDynamicCasinos(casinos) {
+  try {
+    localStorage.setItem('dynamicCasinos', JSON.stringify(casinos || {}));
+  } catch (error) {
+    console.warn('Error guardando casinos locales en localStorage:', error);
+  }
+}
+
+async function uploadImageFile(source, casinoId, type) {
+  if (typeof source === 'string' && !source.startsWith('data:')) {
+    return source;
+  }
+
+  if (!USE_REMOTE_STORAGE) {
+    return source instanceof File ? await fileToDataURL(source) : source;
+  }
+
+  const path = `${STORAGE_FOLDER}/${casinoId}/${type}-${Date.now()}`;
+  const storageReference = storageRef(storage, path);
+  const blob = source instanceof File ? source : dataURLtoBlob(source);
+  try {
+    await uploadBytes(storageReference, blob);
+    return await getDownloadURL(storageReference);
+  } catch (error) {
+    console.warn('Firebase Storage no disponible, usando fallback base64 para imágenes:', { source, casinoId, type, path, error });
+    return source instanceof File ? await fileToDataURL(source) : source;
+  }
+}
+
+async function loadDynamicCasinos() {
+  if (!USE_REMOTE_STORAGE) {
+    dynamicCasinos = getLocalDynamicCasinos();
+    return dynamicCasinos;
+  }
+
+  try {
+    const snapshot = await getDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT));
+    const config = snapshot.exists() ? snapshot.data() : {};
+    dynamicCasinos = config.casinos || getLocalDynamicCasinos();
+    if (!dynamicCasinos || typeof dynamicCasinos !== 'object') {
+      dynamicCasinos = getLocalDynamicCasinos();
+    }
+    return dynamicCasinos;
+  } catch (error) {
+    console.warn('Error cargando casinos desde Firebase, usando localStorage como fallback:', error);
+    dynamicCasinos = getLocalDynamicCasinos();
+    return dynamicCasinos;
+  }
+}
+
+async function saveDynamicCasinos() {
+  setLocalDynamicCasinos(dynamicCasinos);
+
+  if (!USE_REMOTE_STORAGE) {
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), { casinos: dynamicCasinos }, { merge: true });
+  } catch (error) {
+    console.warn('Error guardando casinos dinámicos en Firebase, ya están guardados en localStorage:', error);
+  }
+}
+
+async function addCasino(id, name, logo, mascot, color) {
+  const casinoId = id || `casino_${Date.now()}`;
+  let logoUrl = logo;
+  let mascotUrl = mascot;
+
+  if (logo && (logo instanceof File || (typeof logo === 'string' && logo.startsWith('data:')))) {
+    logoUrl = await uploadImageFile(logo, casinoId, 'logo');
+  }
+  if (mascot && (mascot instanceof File || (typeof mascot === 'string' && mascot.startsWith('data:')))) {
+    mascotUrl = await uploadImageFile(mascot, casinoId, 'mascot');
+  }
+
+  const existing = dynamicCasinos[casinoId] || {};
+  const active = existing.active || false;
+
+  dynamicCasinos[casinoId] = {
+    label: name,
+    logo: logoUrl,
+    mascot: mascotUrl,
+    color: color,
+    active: active
+  };
+
+  await saveDynamicCasinos();
+  return casinoId;
+}
+
+async function removeCasino(casinoId) {
+  delete dynamicCasinos[casinoId];
+  await saveDynamicCasinos();
+}
+
+async function updateCasinoActive(casinoId, active) {
+  if (dynamicCasinos[casinoId]) {
+    dynamicCasinos[casinoId].active = active;
+    await saveDynamicCasinos();
+  }
+}
 
 async function getRemoteConfig() {
   try {
@@ -61,127 +233,93 @@ async function getRemoteConfig() {
 
 function getThemesFromConfig(config) {
   if (!config) return null;
-
-  const selected = [];
-  if (config.showGanamos) selected.push("ganamos");
-  if (config.showZeus) selected.push("zeus");
-  if (config.showApostamos) selected.push("apostamos");
-  return selected.length ? selected : null;
+  
+  const activeCasinos = [];
+  for (let i = 1; i <= MAX_CASINOS; i++) {
+    const key = `showCasino${i}`;
+    if (config[key] === true) {
+      activeCasinos.push(`casino_${i}`);
+    }
+  }
+  
+  return activeCasinos.length ? activeCasinos : null;
 }
 
-function getConfigFromThemes(themes) {
-  return {
-    showGanamos: themes.includes("ganamos"),
-    showZeus: themes.includes("zeus"),
-    showApostamos: themes.includes("apostamos")
-  };
+function getConfigFromThemes(casinoIds) {
+  const config = {};
+  
+  // Limpiar todos los showCasino primero
+  for (let i = 1; i <= MAX_CASINOS; i++) {
+    config[`showCasino${i}`] = false;
+  }
+  
+  // Establecer los activos
+  casinoIds.forEach((casinoId) => {
+    const match = casinoId.match(/casino_(\d+)/);
+    if (match) {
+      const num = parseInt(match[1]);
+      if (num >= 1 && num <= MAX_CASINOS) {
+        config[`showCasino${num}`] = true;
+      }
+    }
+  });
+  
+  return config;
 }
 
-function setCheckboxStates(themes) {
+function setCheckboxStates(activeCasinoIds) {
   const checkboxInputs = document.querySelectorAll('input[name="theme-select"][type="checkbox"]');
   if (!checkboxInputs.length) return;
 
   checkboxInputs.forEach((input) => {
-    input.checked = themes.includes(input.value);
+    input.checked = activeCasinoIds.includes(input.value);
   });
 }
 
-function applyRemoteThemes(remoteThemes) {
-  const normalized = normalizeThemes(remoteThemes);
-  if (!normalized.length) return;
-
-  activeThemes = normalized;
-  activeTheme = activeThemes[0];
-  setCheckboxStates(activeThemes);
-  applyTheme(activeTheme);
+function getActiveCasinos() {
+  return Object.keys(dynamicCasinos).filter(id => dynamicCasinos[id].active);
 }
 
-async function observeRemoteConfig() {
-  try {
-    onSnapshot(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), (snapshot) => {
-      if (!snapshot.exists()) return;
-      const config = snapshot.data();
-      const remoteThemes = getThemesFromConfig(config);
-      if (remoteThemes) {
-        applyRemoteThemes(remoteThemes);
-      }
-    });
-  } catch (error) {
-    console.error("Error suscribiéndose a la configuración remota:", error);
-  }
+function getDefaultCasino() {
+  const activeCasinos = getActiveCasinos();
+  return activeCasinos.length ? activeCasinos[0] : Object.keys(dynamicCasinos)[0] || 'casino_1';
 }
 
-async function saveRemoteConfig(config) {
-  try {
-    await setDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), config, { merge: true });
-  } catch (error) {
-    console.error("Error guardando configuración en Firebase:", error);
-  }
-}
-// End Firebase
-
-function getDefaultThemeName() {
-  return THEME_SEQUENCE[0] || 'ganamos';
+function getStoredActiveCasino() {
+  const activeCasinos = getActiveCasinos();
+  return activeCasinos.length ? activeCasinos[0] : Object.keys(dynamicCasinos)[0] || 'casino_1';
 }
 
-function normalizeThemes(themes) {
-  return Array.from(new Set(Array.isArray(themes) ? themes.filter((theme) => themeConfig[theme]) : []));
+function getStoredActiveCasinos() {
+  return getActiveCasinos() || [];
 }
 
-function getStoredTheme() {
-  try {
-    const storedMulti = localStorage.getItem(STORAGE_KEY_MULTI);
-    if (storedMulti) {
-      const parsed = JSON.parse(storedMulti);
-      if (Array.isArray(parsed) && parsed.length && themeConfig[parsed[0]]) {
-        return parsed[0];
-      }
-    }
+let activeThemes = [];
+let activeTheme = '';
 
-    const legacy = localStorage.getItem(STORAGE_KEY);
-    return themeConfig[legacy] ? legacy : getDefaultThemeName();
-  } catch (error) {
-    return getDefaultThemeName();
-  }
+function setStoredActiveCasino(casinoId) {
+  // Se maneja a través de dynamicCasinos
 }
 
-function getStoredThemes() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY_MULTI);
-    const parsed = stored ? JSON.parse(stored) : null;
-    const normalized = normalizeThemes(parsed);
-    return normalized.length ? normalized : [getStoredTheme()];
-  } catch (error) {
-    return [getStoredTheme()];
-  }
+function setStoredActiveCasinos(casinoIds) {
+  // Se maneja a través de dynamicCasinos
 }
 
-let activeThemes = getStoredThemes();
-let activeTheme = activeThemes[0] || getStoredTheme();
-
-function setStoredTheme(themeName) {
-  try {
-    localStorage.setItem(STORAGE_KEY, themeName);
-  } catch (error) {
-    console.warn('No se pudo guardar la configuración del casino.', error);
-  }
-}
-
-function setStoredThemes(themes) {
-  try {
-    localStorage.setItem(STORAGE_KEY_MULTI, JSON.stringify(themes));
-  } catch (error) {
-    console.warn('No se pudo guardar la lista de casinos activos.', error);
-  }
-}
-
-function setActiveThemes(themes) {
-  const normalized = normalizeThemes(themes);
-  const finalThemes = normalized.length ? normalized : [getDefaultThemeName()];
-  activeThemes = finalThemes;
-  activeTheme = finalThemes[0];
-  setStoredThemes(finalThemes);
-  setStoredTheme(activeTheme);
+function setActiveCasinos(casinoIds) {
+  const normalized = casinoIds.filter(id => dynamicCasinos[id]);
+  const finalCasinos = normalized.length ? normalized : [getDefaultCasino()];
+  
+  activeThemes = finalCasinos;
+  activeTheme = finalCasinos[0];
+  setStoredActiveCasinos(finalCasinos);
+  setStoredActiveCasino(activeTheme);
+  
+  // Actualizar estado en dynamicCasinos
+  Object.keys(dynamicCasinos).forEach(id => {
+    dynamicCasinos[id].active = finalCasinos.includes(id);
+  });
+  saveDynamicCasinos().catch((error) => console.warn('Error guardando estado activo de casinos:', error));
+  
   return activeTheme;
 }
 
@@ -204,22 +342,11 @@ function renderContent() {
 }
 
 function getStoredLandingContent() {
-  try {
-    const raw = localStorage.getItem('landingContent');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return typeof parsed === 'object' && parsed !== null ? parsed : null;
-  } catch (error) {
-    return null;
-  }
+  return null;
 }
 
 function setStoredLandingContent(content) {
-  try {
-    localStorage.setItem('landingContent', JSON.stringify(content));
-  } catch (error) {
-    console.warn('No se pudo guardar landingContent en localStorage', error);
-  }
+  // Local storage is disabled for configuration; toda la configuración se guarda en Firebase.
 }
 
 function getLandingContent() {
@@ -229,7 +356,6 @@ function getLandingContent() {
 function setLandingContent(content, saveRemote = true) {
   landingContent = Object.assign({}, landingContent, content || {});
   renderContent();
-  setStoredLandingContent(landingContent);
   if (saveRemote && typeof saveRemoteConfig === 'function') {
     saveRemoteConfig({ landingContent }).catch((e) => console.warn('Error guardando landingContent remoto', e));
   }
@@ -282,11 +408,11 @@ function applyRandomBackground() {
   document.documentElement.style.setProperty('--background-image', `url("${selectedBackground}")`);
 }
 
-function applyTheme(themeName) {
-  const safeTheme = themeConfig[themeName] ? themeName : getDefaultThemeName();
-  activeTheme = safeTheme;
-  document.body.setAttribute('data-theme', safeTheme);
-  setStoredTheme(safeTheme);
+function applyTheme(casinoId) {
+  const safeCasino = dynamicCasinos[casinoId] ? casinoId : getDefaultCasino();
+  activeTheme = safeCasino;
+  document.body.setAttribute('data-theme', safeCasino);
+  setStoredActiveCasino(safeCasino);
 
   const mascot = document.getElementById('active-mascot');
   const cards = document.querySelectorAll('[data-theme-card]');
@@ -294,12 +420,13 @@ function applyTheme(themeName) {
 
   if (logosWrapper) {
     logosWrapper.innerHTML = '';
-    Object.entries(themeConfig).forEach(([key, theme]) => {
-      if (activeThemes.includes(key)) {
+    activeThemes.forEach((id) => {
+      if (dynamicCasinos[id]) {
         const image = document.createElement('img');
-        image.src = theme.logos[0];
-        image.alt = theme.label;
+        image.src = dynamicCasinos[id].logo;
+        image.alt = dynamicCasinos[id].label;
         image.className = 'brand-mark__image';
+        image.setAttribute('data-casino-id', id);
         logosWrapper.appendChild(image);
       }
     });
@@ -309,15 +436,29 @@ function applyTheme(themeName) {
     card.classList.toggle('is-active', activeThemes.includes(card.getAttribute('data-theme-card')));
   });
 
-  if (mascot) {
-    const theme = themeConfig[safeTheme];
-    fadeAsset(mascot, theme.mascot, theme.alt);
+  if (!dynamicCasinos[safeCasino]) {
+    return;
   }
+
+  if (mascot) {
+    fadeAsset(mascot, dynamicCasinos[safeCasino].mascot, dynamicCasinos[safeCasino].label);
+  }
+
+  // Aplicar color del casino y blobs
+  const colorVars = generateColorVariations(dynamicCasinos[safeCasino].color);
+  document.documentElement.style.setProperty('--primary-color', colorVars.medium);
+  document.documentElement.style.setProperty('--primary-light', colorVars.light);
+  document.documentElement.style.setProperty('--primary-dark', colorVars.dark);
+  document.documentElement.style.setProperty('--blob-1-color', colorVars.blob1);
+  document.documentElement.style.setProperty('--blob-2-color', colorVars.blob2);
+  document.documentElement.style.setProperty('--blob-3-color', colorVars.blob3);
+  document.documentElement.style.setProperty('--blob-4-color', colorVars.blob4);
+  document.documentElement.style.setProperty('--blob-5-color', colorVars.blob5);
 }
 
 function rotateTheme() {
   if (!activeThemes.length) {
-    activeThemes = [getDefaultThemeName()];
+    activeThemes = [getDefaultCasino()];
   }
 
   if (activeThemes.length === 1) {
@@ -329,6 +470,42 @@ function rotateTheme() {
   applyTheme(nextTheme);
 }
 
+function applyRemoteThemes(remoteCasinos) {
+  if (!remoteCasinos || !Array.isArray(remoteCasinos)) return;
+  
+  const normalized = remoteCasinos.filter(id => dynamicCasinos[id]);
+  if (!normalized.length) return;
+
+  activeThemes = normalized;
+  activeTheme = activeThemes[0];
+  setCheckboxStates(activeThemes);
+  applyTheme(activeTheme);
+}
+
+async function observeRemoteConfig() {
+  try {
+    onSnapshot(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), (snapshot) => {
+      if (!snapshot.exists()) return;
+      const config = snapshot.data();
+      const remoteCasinos = getThemesFromConfig(config);
+      if (remoteCasinos && Array.isArray(remoteCasinos)) {
+        applyRemoteThemes(remoteCasinos);
+      }
+    });
+  } catch (error) {
+    console.error("Error suscribiéndose a la configuración remota:", error);
+  }
+}
+
+async function saveRemoteConfig(config) {
+  try {
+    await setDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), config, { merge: true });
+  } catch (error) {
+    console.error("Error guardando configuración en Firebase:", error);
+  }
+}
+// End Firebase
+
 function openWhatsApp() {
   window.open(WHATSAPP_URL, '_blank', 'noopener,noreferrer');
 }
@@ -337,16 +514,25 @@ function setViewportHeight() {
   document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const firebaseConfig = await getRemoteConfig();
-  const remoteThemes = getThemesFromConfig(firebaseConfig);
+window.casinosReady = loadDynamicCasinos();
 
-  if (remoteThemes && remoteThemes.length) {
-    activeThemes = normalizeThemes(remoteThemes);
-    activeTheme = activeThemes[0];
+document.addEventListener('DOMContentLoaded', async () => {
+  // Esperar a que los casinos remotos estén cargados
+  await window.casinosReady;
+
+  const firebaseConfig = await getRemoteConfig();
+  const remoteCasinos = getThemesFromConfig(firebaseConfig);
+
+  if (remoteCasinos && Array.isArray(remoteCasinos) && remoteCasinos.length) {
+    activeThemes = remoteCasinos.filter(id => dynamicCasinos[id]);
+    activeTheme = activeThemes[0] || getDefaultCasino();
   } else {
-    activeThemes = getStoredThemes();
-    activeTheme = activeThemes[0] || getDefaultThemeName();
+    activeThemes = getStoredActiveCasinos();
+    activeTheme = activeThemes[0] || getDefaultCasino();
+  }
+
+  if (!activeTheme || !dynamicCasinos[activeTheme]) {
+    activeTheme = getDefaultCasino();
   }
 
   // Load landing content from remote config if available, otherwise from localStorage
@@ -394,14 +580,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selected = Array.from(checkboxInputs)
           .filter((item) => item.checked)
           .map((item) => item.value)
-          .sort((a, b) => THEME_SEQUENCE.indexOf(a) - THEME_SEQUENCE.indexOf(b));
+          .filter(id => dynamicCasinos[id]);
 
         if (!selected.length) {
-          selected.push(getDefaultThemeName());
-          checkboxInputs[0].checked = true;
+          selected.push(getDefaultCasino());
+          checkboxInputs.forEach(cb => {
+            if (cb.value === getDefaultCasino()) cb.checked = true;
+          });
         }
 
-        const primary = setActiveThemes(selected);
+        const primary = setActiveCasinos(selected);
         applyTheme(primary);
 
         await saveRemoteConfig(getConfigFromThemes(selected));
@@ -419,6 +607,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!window.location.pathname.includes('settings') && activeThemes.length > 1) {
     window.setInterval(rotateTheme, 5000);
   }
+
+  // Exponer API global
+  window.casinosAPI = {
+    addCasino,
+    removeCasino,
+    updateCasinoActive,
+    getCasinos: () => dynamicCasinos,
+    saveDynamicCasinos,
+    applyTheme,
+    setActiveCasinos
+  };
 });
 
 window.addEventListener('resize', setViewportHeight);
@@ -428,11 +627,25 @@ const landingSettingsAPI = {
   setLandingContent,
   getStoredLandingContent,
   setStoredLandingContent,
-  saveRemoteConfig
+  saveRemoteConfig,
+  // Nuevas APIs para casinos dinámicos
+  addCasino,
+  removeCasino,
+  updateCasinoActive,
+  getCasinos: () => dynamicCasinos,
+  saveDynamicCasinos,
+  loadDynamicCasinos,
+  setActiveCasinos,
+  getActiveCasinos
 };
 
 if (typeof window !== 'undefined') {
   window.landingSettings = landingSettingsAPI;
+  window.casinosAPI = {
+    ...landingSettingsAPI,
+    applyTheme,
+    setActiveCasinos
+  };
 }
 
-export { getLandingContent, setLandingContent, getStoredLandingContent, setStoredLandingContent, saveRemoteConfig };
+export { getLandingContent, setLandingContent, getStoredLandingContent, setStoredLandingContent, saveRemoteConfig, addCasino, removeCasino, updateCasinoActive, loadDynamicCasinos, setActiveCasinos, getActiveCasinos };

@@ -1,12 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBxduoIjvtM7arjMzKfwqDl4Rt-3eVogf8",
   authDomain: "landing-pro24.firebaseapp.com",
   projectId: "landing-pro24",
-  storageBucket: "landing-pro24.firebasestorage.app",
+  storageBucket: "landing-pro24.appspot.com",
   messagingSenderId: "705239660423",
   appId: "1:705239660423:web:f91ef0cc5e345791fb4522"
 };
@@ -14,3 +15,4 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
+export const storage = getStorage(app);
