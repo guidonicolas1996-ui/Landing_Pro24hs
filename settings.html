@@ -163,12 +163,18 @@
       async function waitForCasinosApi(timeoutMs = 3000) {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
-          if ((window.landingSettings && window.landingSettings.addCasino) || (window.casinosAPI && window.casinosAPI.addCasino)) {
-            return window.landingSettings || window.casinosAPI;
+          const api = window.landingSettings && window.landingSettings.addCasino ? window.landingSettings :
+            window.casinosAPI && window.casinosAPI.addCasino ? window.casinosAPI : null;
+          if (api && (api.getCasinos || api.addCasino || api.setActiveCasinos)) {
+            return api;
           }
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
-        return window.landingSettings || window.casinosAPI || {};
+        return (window.landingSettings && (window.landingSettings.getCasinos || window.landingSettings.addCasino || window.landingSettings.setActiveCasinos))
+          ? window.landingSettings
+          : (window.casinosAPI && (window.casinosAPI.getCasinos || window.casinosAPI.addCasino || window.casinosAPI.setActiveCasinos))
+            ? window.casinosAPI
+            : {};
       }
 
       // File previews
@@ -438,12 +444,12 @@
           await window.casinosReady.catch(() => {});
         }
 
-        const api = window.landingSettings || {};
+        const api = await waitForCasinosApi();
         const remoteOrStored = (api.getLandingContent && api.getLandingContent()) || (api.getStoredLandingContent && api.getStoredLandingContent());
         populateForm(remoteOrStored);
         
         // Cargar casinos desde Firebase
-        renderCasinos();
+        await renderCasinos();
         const modal = document.getElementById('new-casino-modal');
         const openNewCasino = document.getElementById('open-new-casino');
         const closeNewCasino = document.getElementById('close-new-casino');
