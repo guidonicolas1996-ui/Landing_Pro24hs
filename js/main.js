@@ -514,13 +514,20 @@ function setViewportHeight() {
   document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
 }
 
-window.casinosReady = loadDynamicCasinos();
+window.casinosReady = loadDynamicCasinos().catch((error) => {
+  console.warn('Error inicializando casinos dinámicos, usando localStorage como fallback:', error);
+  dynamicCasinos = getLocalDynamicCasinos();
+  return dynamicCasinos;
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Esperar a que los casinos remotos estén cargados
+  // Esperar a que los casinos remotos estén cargados o fallback local esté listo
   await window.casinosReady;
 
-  const firebaseConfig = await getRemoteConfig();
+  const firebaseConfig = await getRemoteConfig().catch((error) => {
+    console.warn('Error cargando config remota al iniciar:', error);
+    return null;
+  });
   const remoteCasinos = getThemesFromConfig(firebaseConfig);
 
   if (remoteCasinos && Array.isArray(remoteCasinos) && remoteCasinos.length) {
