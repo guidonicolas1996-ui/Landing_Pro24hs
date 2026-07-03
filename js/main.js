@@ -758,6 +758,9 @@ function applyTheme(casinoId) {
   document.documentElement.style.setProperty('--primary-color', colorVars.medium);
   document.documentElement.style.setProperty('--primary-light', colorVars.light);
   document.documentElement.style.setProperty('--primary-dark', colorVars.dark);
+  document.documentElement.style.setProperty('--theme-primary', colorVars.medium);
+  document.documentElement.style.setProperty('--theme-primary-strong', colorVars.dark);
+  document.documentElement.style.setProperty('--theme-accent', colorVars.light);
   document.documentElement.style.setProperty('--blob-1-color', colorVars.blob1);
   document.documentElement.style.setProperty('--blob-2-color', colorVars.blob2);
   document.documentElement.style.setProperty('--blob-3-color', colorVars.blob3);
