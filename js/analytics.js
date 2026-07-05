@@ -463,7 +463,21 @@ async function loadAnalytics() {
     const visitorCount = countUniqueVisitors(visitors, range.start, range.end);
     const detailItems = aggregateItems(bucketData.items, detailMode);
 
-    displayTotals(bucketData.totals, visitorCount);
+    // If for some reason buckets aggregation yields 0 for alternativeLinks but
+    // the stored totals contain a value, fall back to that to avoid showing
+    // a missing metric in the summary. Also log a sample for debugging.
+    const storedTotals = snapshot.data()?.totals || {};
+    const totalsToDisplay = { ...bucketData.totals };
+    if ((totalsToDisplay.alternativeLinks || 0) === 0 && (storedTotals.alternativeLinks || 0) > 0) {
+      console.warn('alternativeLinks aggregated as 0 from buckets; falling back to stored totals for display.');
+      totalsToDisplay.alternativeLinks = storedTotals.alternativeLinks;
+    }
+    displayTotals(totalsToDisplay, visitorCount);
+
+    // Debug: if user reports alternativeLinks not working, log first few values
+    if (metrics.includes('alternativeLinks')) {
+      console.debug('alternativeLinks sample values:', detailItems.slice(0,5).map(it => ({ label: it.label, value: it.alternativeLinks || 0 })));
+    }
     renderBreakdown(detailItems);
 
     let chartError = null;
