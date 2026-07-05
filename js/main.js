@@ -320,12 +320,17 @@ async function registerAnalyticsVisit() {
     const sourceCountKey = source === 'alternative' ? 'alternativeLinks' : 'primaryLinks';
     const sourceTotalKey = source === 'alternative' ? 'alternativeVisits' : 'primaryVisits';
     const previousSourceCount = existing?.sources?.[source] || 0;
+    // debug logs to help verify per-source counting behavior
+    console.debug('registerAnalyticsVisit: before update', { visitorId, source, previousSourceCount, existingSources: existing?.sources });
     const sameHour = existing?.lastSeen?.slice(0, 13) === currentHour;
 
     if (isNewVisitor) {
       current.totals.uniqueVisitors += 1;
     }
-    if (!sameHour && previousSourceCount === 0) {
+    // increment per-source unique total the first time this visitor uses that source,
+    // regardless of whether it's the same hour as previous activity. This ensures
+    // primary and alternative unique counts are independent.
+    if (previousSourceCount === 0) {
       current.totals[sourceCountKey] = (current.totals[sourceCountKey] || 0) + 1;
     }
 
@@ -345,6 +350,7 @@ async function registerAnalyticsVisit() {
 
     visitors[visitorId] = updated;
     current.visitors = visitors;
+    console.debug('registerAnalyticsVisit: after update', { visitorId, updatedSources: updated.sources });
     current.totals.totalVisits = (current.totals.totalVisits || 0) + 1;
     current.totals[sourceTotalKey] = (current.totals[sourceTotalKey] || 0) + 1;
 
@@ -354,6 +360,10 @@ async function registerAnalyticsVisit() {
     bucket[sourceTotalKey] = (bucket[sourceTotalKey] || 0) + 1;
     if (!sameHour) {
       bucket.uniqueVisitors += 1;
+    }
+    // For per-source unique counts within the bucket, increment if this visitor
+    // has not used this source before (so primary/alternative are independent).
+    if (previousSourceCount === 0) {
       bucket[sourceCountKey] = (bucket[sourceCountKey] || 0) + 1;
     }
     current.buckets[dateKey][hourKey] = bucket;
@@ -550,8 +560,12 @@ async function addCasino(id, name, logo, mascot, color) {
     active: active
   };
 
+  if (!dynamicCasinoOrder.includes(casinoId)) {
+    dynamicCasinoOrder.push(casinoId);
+  }
+
   await saveDynamicCasinos();
-  console.debug('addCasino done', { casinoId, casino: dynamicCasinos[casinoId] });
+  console.debug('addCasino done', { casinoId, casino: dynamicCasinos[casinoId], order: dynamicCasinoOrder });
   return casinoId;
 }
 

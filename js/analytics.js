@@ -1,5 +1,5 @@
 import { db } from './firebase.js';
-import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
 const rangeSelect = document.getElementById('analytics-range-select');
 const detailSelect = document.getElementById('analytics-detail-select');
@@ -540,6 +540,35 @@ globalThis.addEventListener('load', () => {
     } catch (error) {
       messageElement.textContent = error.message;
       breakdownElement.innerHTML = '';
+    }
+  });
+
+  // Temporary: clear analytics data for testing
+  const clearButton = document.getElementById('analytics-clear-btn');
+  clearButton?.addEventListener('click', async () => {
+    try {
+      if (!confirm('¿Confirmás que querés borrar TODOS los datos de analytics? Esto es irreversible.')) return;
+      messageElement.textContent = 'Borrando datos...';
+      const empty = {
+        totals: {
+          uniqueVisitors: 0,
+          totalVisits: 0,
+          primaryLinks: 0,
+          alternativeLinks: 0,
+          primaryVisits: 0,
+          alternativeVisits: 0,
+          whatsappClicks: 0,
+          whatsappClicksTotal: 0
+        },
+        visitors: {},
+        buckets: {}
+      };
+      await setDoc(doc(db, 'analytics', 'landing'), empty);
+      messageElement.textContent = 'Datos borrados correctamente.';
+      await loadAnalytics();
+    } catch (error) {
+      console.error('Error borrando datos de analytics:', error);
+      messageElement.textContent = `Error borrando datos: ${error?.message || error}`;
     }
   });
 
