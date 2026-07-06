@@ -3,7 +3,7 @@ let landingContent = {
   accessBadge: 'ACCESO VIP',
   heroTitle: 'OBTENÉ UN <span class="gradient-text">EXTRA</span> EN TU <span class="gradient-text">PRIMER DEPÓSITO</span>',
   heroCopy: 'Escribinos apretando el botón de abajo',
-  ctaLabel: 'WHATSAPP OFICIAL',
+  ctaLabel: 'CARGANDO PROMOCIÓN...',
   helperText: 'ATENCIÓN Y RETIROS LAS 24 HS',
   footerText1: 'Bono no extraíble, válido solo para slots. Mínimo de carga: $2.000.',
   footerText2: '© 2026 el juego es solo +18. Operá con responsabilidad.',
@@ -806,25 +806,22 @@ function fadeAsset(element, src, alt) {
     return;
   }
 
-  const previousSrc = currentSrc || '';
-  const previousAlt = element.getAttribute('alt') || '';
-
-  element.style.opacity = '0';
-  element.style.transform = 'scale(0.97)';
-
   const nextImage = new Image();
   nextImage.src = src;
 
   nextImage.onload = () => {
+    element.style.opacity = '0';
+    element.style.transform = 'scale(0.88)';
+
     window.setTimeout(() => {
       element.setAttribute('src', src);
       element.setAttribute('alt', alt);
       element.style.opacity = '1';
       element.style.transform = 'scale(1)';
-    }, 120);
+    }, 200);
   };
 
-  if (!previousSrc) {
+  if (!currentSrc) {
     element.setAttribute('src', src);
     element.setAttribute('alt', alt);
     element.style.opacity = '1';
@@ -859,6 +856,8 @@ function refreshThemeRotation() {
   rotationTimerId = window.setInterval(rotateTheme, 5000);
 }
 
+let hasPlayedLogoDropIn = false;
+
 function applyTheme(casinoId) {
   const safeCasino = dynamicCasinos[casinoId] ? casinoId : getDefaultCasino();
   activeTheme = safeCasino;
@@ -881,6 +880,25 @@ function applyTheme(casinoId) {
         logosWrapper.appendChild(image);
       }
     });
+
+    if (logosWrapper.children.length) {
+      if (!hasPlayedLogoDropIn) {
+        logosWrapper.classList.add('brand-mark--hidden');
+        window.requestAnimationFrame(() => {
+          logosWrapper.getBoundingClientRect();
+          window.requestAnimationFrame(() => {
+            logosWrapper.classList.remove('brand-mark--hidden');
+            logosWrapper.classList.add('brand-mark--drop-in');
+          });
+        });
+        window.setTimeout(() => {
+          logosWrapper.classList.remove('brand-mark--drop-in');
+        }, 1200);
+        hasPlayedLogoDropIn = true;
+      } else {
+        logosWrapper.classList.remove('brand-mark--hidden');
+      }
+    }
   }
 
   cards.forEach((card) => {
@@ -1013,89 +1031,136 @@ window.casinosReady = Promise.resolve().then(async () => {
 });
 
 let whatsappButtonProgressTimer = null;
+let whatsappButtonCompleteTimeout = null;
 let whatsappButtonProgressValue = 0;
+let whatsappButtonProgressStartedAt = 0;
+let whatsappButtonProgressActive = false;
+let whatsappButtonReady = false;
 
-function updateWhatsAppButtonProgress(value) {
+function syncWhatsAppButtonUI() {
   const button = document.getElementById('whatsapp-button');
   const fill = button?.querySelector('.whatsapp-button__progress-fill');
-  if (!fill) return;
-  whatsappButtonProgressValue = Math.min(100, Math.max(0, value));
+  if (!button || !fill) return;
+
   fill.style.width = `${whatsappButtonProgressValue}%`;
+
+  if (whatsappButtonReady) {
+    button.disabled = false;
+    button.classList.remove('whatsapp-button--loading');
+    button.classList.add('whatsapp-button--ready');
+    button.removeAttribute('aria-disabled');
+  } else if (whatsappButtonProgressActive) {
+    button.disabled = true;
+    button.classList.add('whatsapp-button--loading');
+    button.classList.remove('whatsapp-button--ready');
+    button.setAttribute('aria-disabled', 'true');
+  } else {
+    button.disabled = true;
+    button.classList.add('whatsapp-button--loading');
+    button.classList.remove('whatsapp-button--ready');
+    button.setAttribute('aria-disabled', 'true');
+  }
+}
+
+function updateWhatsAppButtonProgress(value) {
+  whatsappButtonProgressValue = Math.min(100, Math.max(0, value));
+  syncWhatsAppButtonUI();
 }
 
 function startWhatsAppButtonProgress() {
   const button = document.getElementById('whatsapp-button');
-  if (!button) return;
-  button.disabled = true;
-  button.classList.add('whatsapp-button--loading');
-  button.classList.remove('whatsapp-button--ready');
-  button.setAttribute('aria-disabled', 'true');
-  updateWhatsAppButtonProgress(0);
+  if (whatsappButtonCompleteTimeout) {
+    clearTimeout(whatsappButtonCompleteTimeout);
+    whatsappButtonCompleteTimeout = null;
+  }
+
+  whatsappButtonProgressStartedAt = performance.now();
+  whatsappButtonProgressActive = true;
+  whatsappButtonReady = false;
+  syncWhatsAppButtonUI();
+  updateWhatsAppButtonProgress(16);
 
   if (whatsappButtonProgressTimer) {
     clearInterval(whatsappButtonProgressTimer);
   }
 
   whatsappButtonProgressTimer = setInterval(() => {
-    if (whatsappButtonProgressValue >= 90) {
+    if (whatsappButtonProgressValue >= 94) {
       return;
     }
-    updateWhatsAppButtonProgress(whatsappButtonProgressValue + Math.random() * 6 + 2);
-  }, 140);
+    updateWhatsAppButtonProgress(whatsappButtonProgressValue + Math.random() * 4 + 2);
+  }, 100);
 }
 
 function resetWhatsAppButtonProgress() {
-  const button = document.getElementById('whatsapp-button');
-  if (!button) return;
-  button.disabled = true;
-  button.classList.add('whatsapp-button--loading');
-  button.classList.remove('whatsapp-button--ready');
-  button.setAttribute('aria-disabled', 'true');
+  if (whatsappButtonCompleteTimeout) {
+    clearTimeout(whatsappButtonCompleteTimeout);
+    whatsappButtonCompleteTimeout = null;
+  }
+  whatsappButtonProgressActive = true;
+  whatsappButtonReady = false;
   updateWhatsAppButtonProgress(0);
 }
 
 function completeWhatsAppButtonProgress() {
-  const button = document.getElementById('whatsapp-button');
-  if (!button) return;
-
   if (whatsappButtonProgressTimer) {
     clearInterval(whatsappButtonProgressTimer);
     whatsappButtonProgressTimer = null;
   }
+  if (whatsappButtonCompleteTimeout) {
+    clearTimeout(whatsappButtonCompleteTimeout);
+    whatsappButtonCompleteTimeout = null;
+  }
 
   updateWhatsAppButtonProgress(100);
-  button.disabled = false;
-  button.classList.remove('whatsapp-button--loading');
-  button.classList.add('whatsapp-button--ready');
-  button.removeAttribute('aria-disabled');
+
+  const elapsed = performance.now() - whatsappButtonProgressStartedAt;
+  const minimumDuration = 360;
+  const remaining = Math.max(0, minimumDuration - elapsed);
+
+  if (landingContent.whatsappUrl && landingContent.whatsappUrl.trim()) {
+    whatsappButtonCompleteTimeout = setTimeout(() => {
+      whatsappButtonProgressActive = false;
+      whatsappButtonReady = true;
+      syncWhatsAppButtonUI();
+      whatsappButtonCompleteTimeout = null;
+    }, remaining);
+  } else {
+    whatsappButtonProgressActive = true;
+    whatsappButtonReady = false;
+    syncWhatsAppButtonUI();
+  }
 }
 
 // Cargar URL de WhatsApp urgentemente (PRIORIDAD UNO - ultrarrápido)
 async function loadWhatsAppUrlUrgent() {
-  resetWhatsAppButtonProgress();
+  startWhatsAppButtonProgress();
   try {
     const { db, doc, getDoc } = await ensureFirebaseServices();
-    // Timeout ultra-corto para no bloquear
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-    
-    const snapshot = await getDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT));
-    clearTimeout(timeout);
-    
-    if (snapshot.exists() && snapshot.data()?.landingContent?.whatsappUrl) {
+    const docRef = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT);
+
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('timeout')), 2000);
+    });
+
+    const snapshot = await Promise.race([getDoc(docRef), timeoutPromise]);
+    clearTimeout(timeoutId);
+
+    if (snapshot?.exists() && snapshot.data()?.landingContent?.whatsappUrl) {
       landingContent.whatsappUrl = snapshot.data().landingContent.whatsappUrl;
       console.debug('✓ WhatsApp URL cargado');
     }
   } catch (error) {
-    // Error silencioso - mantiene valor por defecto
+    console.debug('WhatsApp URL no se cargó a tiempo:', error?.message || error);
   } finally {
     completeWhatsAppButtonProgress();
   }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // === PASO 1: Cargar WhatsApp URL + disparar animación ===
-  await loadWhatsAppUrlUrgent(); // La animación se dispara en finally
+  // === PASO 1: Iniciar carga del WhatsApp URL en background ===
+  loadWhatsAppUrlUrgent(); // No bloquea el render
   
   // === PASO 2: Setup local rápido ===
   const localCasinos = getLocalDynamicCasinos();
@@ -1113,6 +1178,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   setCheckboxStates(activeThemes);
 
   // === PASO 3: Renderizar con valores por defecto ===
+  const initialMascot = document.getElementById('active-mascot');
+  if (initialMascot) {
+    initialMascot.classList.add('hero-header__mascot--initial');
+    window.setTimeout(() => {
+      initialMascot.classList.remove('hero-header__mascot--initial');
+    }, 2000);
+  }
+
   renderContent();
   applyTheme(activeTheme);
   refreshThemeRotation();
@@ -1130,6 +1203,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       openWhatsApp();
     });
   }
+
+  syncWhatsAppButtonUI();
 
   const select = document.getElementById('theme-select');
   if (select) {
