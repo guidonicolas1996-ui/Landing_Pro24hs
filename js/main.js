@@ -841,7 +841,7 @@ function applyTheme(casinoId) {
     return;
   }
 
-  applyRandomBackground();
+  //applyRandomBackground();
 
   if (mascot) {
     fadeAsset(mascot, getImageUrl(dynamicCasinos[safeCasino].mascot), dynamicCasinos[safeCasino].label);
