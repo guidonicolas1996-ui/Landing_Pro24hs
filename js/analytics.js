@@ -1,18 +1,18 @@
 import { db } from './firebase.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
-const rangeSelect = document.getElementById('analytics-range-select');
-const detailSelect = document.getElementById('analytics-detail-select');
+let rangeSelect = null;
+let detailSelect = null;
 let metricCheckboxes = null;
-const chartLegend = document.getElementById('analytics-legend');
-const startInput = document.getElementById('analytics-start');
-const endInput = document.getElementById('analytics-end');
-const refreshButton = document.getElementById('analytics-refresh');
-const messageElement = document.getElementById('analytics-message');
-const breakdownElement = document.getElementById('analytics-breakdown');
-const breakdownTitle = document.getElementById('analytics-breakdown-title');
-const chartCanvas = document.getElementById('analytics-chart');
-const chartContext = chartCanvas ? chartCanvas.getContext('2d') : null;
+let chartLegend = null;
+let startInput = null;
+let endInput = null;
+let refreshButton = null;
+let messageElement = null;
+let breakdownElement = null;
+let breakdownTitle = null;
+let chartCanvas = null;
+let chartContext = null;
 let summaryToggle;
 let summaryBody;
 let visualizationToggle;
@@ -21,6 +21,21 @@ let chartToggle;
 let chartSection;
 let tableToggle;
 let tableSection;
+
+function initializeElements() {
+  rangeSelect = document.getElementById('analytics-range-select');
+  detailSelect = document.getElementById('analytics-detail-select');
+  metricCheckboxes = document.getElementById('analytics-metric-checkboxes');
+  chartLegend = document.getElementById('analytics-legend');
+  startInput = document.getElementById('analytics-start');
+  endInput = document.getElementById('analytics-end');
+  refreshButton = document.getElementById('analytics-refresh');
+  messageElement = document.getElementById('analytics-message');
+  breakdownElement = document.getElementById('analytics-breakdown');
+  breakdownTitle = document.getElementById('analytics-breakdown-title');
+  chartCanvas = document.getElementById('analytics-chart');
+  chartContext = chartCanvas ? chartCanvas.getContext('2d') : null;
+}
 
 const DETAIL_LABELS = {
   hour: 'Gráfico Comparativo',
@@ -108,9 +123,26 @@ function createRange(preset) {
 
 function setInputsForRange(preset) {
   const range = createRange(preset);
-  startInput.value = toLocalDateTimeString(range.start);
-  endInput.value = toLocalDateTimeString(range.end);
-  messageElement.textContent = `Mostrando datos para: ${range.label}`;
+  if (startInput) startInput.value = toLocalDateTimeString(range.start);
+  if (endInput) endInput.value = toLocalDateTimeString(range.end);
+  if (messageElement) messageElement.textContent = `Mostrando datos para: ${range.label}`;
+}
+
+function updateDateInputsState() {
+  const isCustom = rangeSelect && rangeSelect.value === 'custom';
+  
+  if (startInput) {
+    startInput.disabled = !isCustom;
+    startInput.setAttribute('aria-disabled', String(!isCustom));
+  }
+  if (endInput) {
+    endInput.disabled = !isCustom;
+    endInput.setAttribute('aria-disabled', String(!isCustom));
+  }
+  if (refreshButton) {
+    refreshButton.disabled = !isCustom;
+    refreshButton.setAttribute('aria-disabled', String(!isCustom));
+  }
 }
 
 function parseRangeInputs() {
@@ -504,7 +536,8 @@ async function loadAnalytics() {
   }
 }
 
-globalThis.addEventListener('load', () => {
+function initializeEventListeners() {
+  initializeElements();
   summaryToggle = document.getElementById('summary-toggle');
   summaryBody = document.getElementById('summary-body');
   visualizationToggle = document.getElementById('visualization-toggle');
@@ -513,35 +546,97 @@ globalThis.addEventListener('load', () => {
   chartSection = document.getElementById('chart-section');
   tableToggle = document.getElementById('table-toggle');
   tableSection = document.getElementById('analytics-breakdown-section');
-  // resolve metric selector now that DOM moved it
-  metricCheckboxes = document.getElementById('analytics-metric-checkboxes');
 
-  rangeSelect.addEventListener('change', async () => {
-    if (rangeSelect.value !== 'custom') {
-      setInputsForRange(rangeSelect.value);
+  updateDateInputsState();
+
+  if (rangeSelect) {
+    rangeSelect.addEventListener('change', async () => {
+      updateDateInputsState();
+      if (rangeSelect.value !== 'custom') {
+        setInputsForRange(rangeSelect.value);
+        await loadAnalytics();
+        return;
+      }
+      if (messageElement) messageElement.textContent = 'Rango personalizado activo. Seleccioná fechas y hacé click en Mostrar.';
+    });
+  }
+
+  if (detailSelect) {
+    detailSelect.addEventListener('change', async () => {
+      if (breakdownTitle) breakdownTitle.textContent = DETAIL_LABELS[detailSelect.value] || DETAIL_LABELS.hour;
       await loadAnalytics();
-    }
-  });
-
-  detailSelect.addEventListener('change', async () => {
-    breakdownTitle.textContent = DETAIL_LABELS[detailSelect.value] || DETAIL_LABELS.hour;
-    await loadAnalytics();
-  });
+    });
+  }
 
   metricCheckboxes?.addEventListener('change', async () => {
     syncMetricCheckboxStyles();
     await loadAnalytics();
   });
 
-  refreshButton.addEventListener('click', async () => {
-    try {
-      parseRangeInputs();
-      await loadAnalytics();
-    } catch (error) {
-      messageElement.textContent = error.message;
-      breakdownElement.innerHTML = '';
-    }
+  if (refreshButton) {
+    refreshButton.addEventListener('click', async () => {
+      if (rangeSelect && rangeSelect.value !== 'custom') {
+        return;
+      }
+
+      try {
+        parseRangeInputs();
+        await loadAnalytics();
+      } catch (error) {
+        if (messageElement && breakdownElement) {
+          messageElement.textContent = error.message;
+          breakdownElement.innerHTML = '';
+        }
+      }
+    });
+  }
+
+  summaryToggle?.addEventListener('click', () => {
+    if (!summaryBody) return;
+    const isCollapsed = summaryBody.classList.toggle('collapsed');
+    summaryToggle.setAttribute('aria-expanded', String(!isCollapsed));
+    summaryToggle.querySelector('.sr-only').textContent = isCollapsed ? 'Mostrar resumen' : 'Minimizar resumen';
   });
+
+  visualizationToggle?.addEventListener('click', () => {
+    if (!visualizationBody) return;
+    const isCollapsed = visualizationBody.classList.toggle('collapsed');
+    visualizationToggle.setAttribute('aria-expanded', String(!isCollapsed));
+    visualizationToggle.querySelector('.sr-only').textContent = isCollapsed ? 'Mostrar visualización' : 'Minimizar visualización';
+  });
+
+  chartToggle?.addEventListener('click', () => {
+    if (!chartSection) return;
+    const chartBody = chartSection.querySelector('.analytics-section__body');
+    if (!chartBody) return;
+    const isCollapsed = chartBody.classList.toggle('collapsed');
+    chartToggle.setAttribute('aria-expanded', String(!isCollapsed));
+    chartToggle.querySelector('.sr-only').textContent = isCollapsed ? 'Mostrar gráfico' : 'Minimizar gráfico';
+  });
+
+  tableToggle?.addEventListener('click', () => {
+    const tableBody = document.getElementById('analytics-breakdown-body');
+    if (!tableBody) return;
+    const isCollapsed = tableBody.classList.toggle('collapsed');
+    tableToggle.setAttribute('aria-expanded', String(!isCollapsed));
+    tableToggle.querySelector('.sr-only').textContent = isCollapsed ? 'Mostrar tabla' : 'Minimizar tabla';
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeEventListeners);
+} else {
+  initializeEventListeners();
+}
+
+  window.addEventListener('resize', () => {
+    loadAnalytics().catch((error) => console.warn('Error actualizando gráfico al redimensionar:', error));
+  });
+
+  syncMetricCheckboxStyles();
+  setInputsForRange('today');
+  loadAnalytics();
+
 
   // Temporary: clear analytics data for testing
   const clearButton = document.getElementById('analytics-clear-btn');

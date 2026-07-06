@@ -70,6 +70,9 @@
         const submitButton = form.querySelector('button[type="submit"]');
         const { auth, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserSessionPersistence } = await ensureFirebase();
 
+        let failedAttempts = 0;
+        let lockedUntil = 0;
+
         window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
 
@@ -83,6 +86,13 @@
 
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
+          const now = Date.now();
+          if (now < lockedUntil) {
+            const secondsLeft = Math.ceil((lockedUntil - now) / 1000);
+            message.textContent = `Demasiados intentos. Esperá ${secondsLeft}s.`;
+            return;
+          }
+
           const email = document.getElementById('login-user').value.trim();
           const pass = document.getElementById('login-pass').value;
           if (!email || pass.length < 4) {
@@ -96,9 +106,14 @@
 
           try {
             const credentials = await signInWithEmailAndPassword(auth, email, pass);
+            failedAttempts = 0;
+            lockedUntil = 0;
             setStoredSession(credentials.user);
             window.location.href = 'settings.html';
           } catch (error) {
+            failedAttempts += 1;
+            const penaltySeconds = failedAttempts >= 5 ? 30 : 10;
+            lockedUntil = Date.now() + penaltySeconds * 1000;
             console.error(error);
             message.textContent = 'Usuario o contraseña incorrectos.';
           } finally {

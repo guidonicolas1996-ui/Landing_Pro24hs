@@ -35,6 +35,19 @@ async function getFirebaseAuth() {
   return firebaseAuthPromise;
 }
 
+async function waitForFirebaseUser(auth) {
+  if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
 function getStoredSession() {
   const storage = getStorage();
   if (!storage) return null;
@@ -109,28 +122,24 @@ async function ensureAuthGate() {
     return true;
   }
 
-  const session = getStoredSession();
-  if (!session) {
-    clearStoredSession();
-    redirectToLogin();
-    return false;
-  }
-
   try {
     const auth = await getFirebaseAuth();
-    if (!auth || !auth.currentUser) {
+    const user = await waitForFirebaseUser(auth);
+
+    if (!user) {
       clearStoredSession();
       redirectToLogin();
       return false;
     }
+
+    setStoredSession(user);
+    return true;
   } catch (error) {
     console.warn('No se pudo validar la sesión de Firebase', error);
     clearStoredSession();
     redirectToLogin();
     return false;
   }
-
-  return true;
 }
 
 async function requireAuth() {

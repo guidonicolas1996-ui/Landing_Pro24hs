@@ -8,13 +8,9 @@
     <title>Settings - Casino Oficial</title>
     <link rel="icon" type="image/png" href="/img/favicon.png" />
     <link rel="stylesheet" href="/css/style.css" />
-    <script>
-      (function () {
-        const session = window.sessionStorage.getItem('adminSession');
-        if (!session) {
-          window.location.replace('/login.html');
-        }
-      })();
+    <script type="module">
+      import { ensureAuthGate } from '/js/auth.js';
+      await ensureAuthGate();
     </script>
   </head>
   <body class="settings-page">

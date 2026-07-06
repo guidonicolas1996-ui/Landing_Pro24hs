@@ -634,9 +634,47 @@ function setupSettingsPage() {
 
   const resetLandingButton = document.getElementById('reset-landing-content');
   if (resetLandingButton) {
-    resetLandingButton.addEventListener('click', () => {
-      if (confirm('Restablecer los textos a los valores por defecto?')) {
-        location.reload();
+    resetLandingButton.addEventListener('click', async () => {
+      if (!confirm('Restablecer los textos a los valores por defecto?')) {
+        return;
+      }
+
+      const defaults = {
+        accessBadge: 'ACCESO VIP',
+        heroTitle: 'OBTENÉ UN <span class="gradient-text">100%</span> EN TU PRIMER DEPÓSITO',
+        heroCopy: 'Escribinos apretando el botón de abajo',
+        ctaLabel: 'WHATSAPP OFICIAL',
+        helperText: 'ATENCIÓN Y RETIROS LAS 24 HS',
+        footerText1: 'Bono no extraíble, válido solo para slots. Mínimo de carga: $2.000.',
+        footerText2: '© 2026 el juego es solo +18. Operá con responsabilidad.'
+      };
+
+      populateForm(defaults);
+
+      const api = await waitForCasinosApi();
+      try {
+        const [firebaseModule, firestoreModule] = await Promise.all([
+          import('./firebase.js'),
+          import('https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js')
+        ]);
+
+        const { doc, getDoc, setDoc } = firestoreModule;
+        const snapshot = await getDoc(doc(firebaseModule.db, 'config', 'landing'));
+        const currentConfig = snapshot.exists() ? snapshot.data() : {};
+        await setDoc(doc(firebaseModule.db, 'config', 'landing'), {
+          ...currentConfig,
+          landingContent: defaults
+        });
+
+        if (api.setLandingContent) {
+          api.setLandingContent(defaults, false);
+        }
+
+        window.dispatchEvent(new CustomEvent('landingContent:ready', { detail: defaults }));
+        alert('Textos restablecidos correctamente y guardados en la base de datos.');
+      } catch (error) {
+        console.error('Error reseteando textos:', error);
+        alert('Error al restablecer: ' + error.message);
       }
     });
   }
