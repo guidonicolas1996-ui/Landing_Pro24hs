@@ -641,7 +641,7 @@ function setupSettingsPage() {
 
       const defaults = {
         accessBadge: 'ACCESO VIP',
-        heroTitle: 'OBTENÉ UN <span class="gradient-text">100%</span> EN TU PRIMER DEPÓSITO',
+        heroTitle: 'OBTENÉ UN <span class="gradient-text">EXTRA</span> EN TU <span class="gradient-text">PRIMER DEPÓSITO</span>',
         heroCopy: 'Escribinos apretando el botón de abajo',
         ctaLabel: 'WHATSAPP OFICIAL',
         helperText: 'ATENCIÓN Y RETIROS LAS 24 HS',
