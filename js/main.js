@@ -19,15 +19,25 @@ let dynamicCasinos = {};
 let dynamicCasinoOrder = [];
 
 // Firebase
-import { db } from "./firebase.js";
+let firebaseServices = null;
 
-import {
-  doc,
-  getDoc,
-  onSnapshot,
-  runTransaction,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+async function ensureFirebaseServices() {
+  if (firebaseServices) {
+    return firebaseServices;
+  }
+
+  const [{ db }, firestore] = await Promise.all([
+    import("./firebase.js"),
+    import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js")
+  ]);
+
+  firebaseServices = {
+    db,
+    ...firestore
+  };
+
+  return firebaseServices;
+}
 
 // Configuración de Cloudinary. Debes reemplazar estos valores con tu cuenta y preset de carga.
 const CLOUDINARY_CLOUD_NAME = "efcbsldh"; // ej: 'mi-cuenta'
@@ -289,6 +299,7 @@ async function getPersistentVisitorId() {
 }
 
 async function registerAnalyticsVisit() {
+  const { db, doc, runTransaction } = await ensureFirebaseServices();
   const visitorId = await getPersistentVisitorId();
   const ip = await getIpAddress();
   const device = getDeviceMetadata(ip);
@@ -373,6 +384,7 @@ async function registerAnalyticsVisit() {
 }
 
 async function registerAnalyticsWhatsappClick() {
+  const { db, doc, runTransaction } = await ensureFirebaseServices();
   const visitorId = await getPersistentVisitorId();
   const ip = await getIpAddress();
   const device = getDeviceMetadata(ip);
@@ -464,9 +476,10 @@ async function deleteCloudinaryImage(deleteToken) {
 }
 
 async function loadDynamicCasinos() {
-  if (!USE_REMOTE_STORAGE) {
-    dynamicCasinos = getLocalDynamicCasinos();
-    // load order from localStorage if present
+  const localCasinos = getLocalDynamicCasinos();
+
+  if (localCasinos && typeof localCasinos === 'object' && Object.keys(localCasinos).length) {
+    dynamicCasinos = localCasinos;
     try {
       const order = JSON.parse(localStorage.getItem(LOCAL_STORAGE_CASINOS_KEY + ':order') || 'null');
       if (Array.isArray(order)) dynamicCasinoOrder = order;
@@ -474,7 +487,13 @@ async function loadDynamicCasinos() {
     return dynamicCasinos;
   }
 
+  if (!USE_REMOTE_STORAGE) {
+    dynamicCasinos = localCasinos;
+    return dynamicCasinos;
+  }
+
   try {
+    const { db, doc, getDoc } = await ensureFirebaseServices();
     const snapshot = await getDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT));
     const config = snapshot.exists() ? snapshot.data() : {};
     dynamicCasinos = config.casinos || getLocalDynamicCasinos();
@@ -516,6 +535,7 @@ async function saveDynamicCasinos() {
   }
 
   try {
+    const { db, doc, getDoc, setDoc } = await ensureFirebaseServices();
     const snapshot = await getDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT));
     const currentConfig = snapshot.exists() ? snapshot.data() : {};
     const newConfig = {
@@ -599,6 +619,7 @@ async function updateCasinoActive(casinoId, active) {
 
 async function getRemoteConfig() {
   try {
+    const { db, doc, getDoc } = await ensureFirebaseServices();
     const snapshot = await getDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT));
     return snapshot.exists() ? snapshot.data() : null;
   } catch (error) {
@@ -892,6 +913,7 @@ function applyRemoteThemes(remoteCasinos) {
 
 async function observeRemoteConfig() {
   try {
+    const { db, doc, onSnapshot } = await ensureFirebaseServices();
     onSnapshot(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), (snapshot) => {
       if (!snapshot.exists()) return;
       const config = snapshot.data();
@@ -930,6 +952,7 @@ async function observeRemoteConfig() {
 
 async function saveRemoteConfig(config) {
   try {
+    const { db, doc, getDoc, setDoc } = await ensureFirebaseServices();
     const snapshot = await getDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT));
     const currentConfig = snapshot.exists() ? snapshot.data() : {};
     await setDoc(doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT), {
