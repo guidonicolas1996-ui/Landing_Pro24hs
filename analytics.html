@@ -7,13 +7,23 @@
     <meta name="theme-color" content="#060b1d" />
     <title>Analytics - Casino Oficial</title>
     <link rel="icon" type="image/png" href="/img/favicon.png" />
+    <meta http-equiv="cache-control" content="no-store" />
     <link rel="stylesheet" href="/css/style.css" />
     <style>body{visibility:hidden;}</style>
     <script type="module">
       import { ensureAuthGate } from '/js/auth.js?v=1';
+      window.authOk = false;
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
       const authOk = await ensureAuthGate();
+      window.authOk = authOk;
       if (authOk) {
         document.body.style.visibility = 'visible';
+      } else {
+        window.location.replace('/login.html');
       }
     </script>
   </head>
@@ -235,13 +245,17 @@
                 </section>
             </section>
         </main>
-    <script type="module">
-      import { clearSession } from '/js/auth.js';
-      document.getElementById('logout-button')?.addEventListener('click', async () => {
-        await clearSession();
-        window.location.replace('/login.html');
-      });
-    </script>
-    <script type="module" src="./js/analytics.js?v=3"></script>
+        <script type="module">
+            import { clearSession } from '/js/auth.js';
+
+            document.getElementById('logout-button')?.addEventListener('click', async () => {
+                await clearSession();
+                window.location.replace('/login.html');
+            });
+
+            if (window.authOk) {
+                await import('./js/analytics.js?v=3');
+            }
+        </script>
   </body>
 </html>

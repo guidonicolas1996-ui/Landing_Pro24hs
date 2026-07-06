@@ -7,7 +7,34 @@
     <meta name="theme-color" content="#060b1d" />
     <title>Login - Casino Oficial</title>
     <link rel="icon" type="image/png" href="/img/favicon.png" />
+    <meta http-equiv="cache-control" content="no-store" />
     <link rel="stylesheet" href="/css/style.css" />
+    <script type="module">
+      import { AUTH_STORAGE_KEY, clearSession } from '/js/auth.js';
+
+      async function clearAuthCache() {
+        try {
+          await clearSession();
+        } catch (error) {
+          console.warn('Error limpiando sesión en login:', error);
+        }
+        try {
+          window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+          window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        } catch (error) {
+          console.warn('Error limpiando storage en login:', error);
+        }
+      }
+
+      window.addEventListener('pageshow', async (event) => {
+        if (event.persisted) {
+          await clearAuthCache();
+          window.location.reload();
+        }
+      });
+
+      await clearAuthCache();
+    </script>
   </head>
   <body class="settings-page" data-theme="default">
     <div class="top-actions">
@@ -73,6 +100,12 @@
         let failedAttempts = 0;
         let lockedUntil = 0;
 
+        window.addEventListener('pageshow', (event) => {
+          if (event.persisted) {
+            window.location.reload();
+          }
+        });
+
         try {
           await auth.signOut();
         } catch (logoutError) {
@@ -84,11 +117,7 @@
 
         await setPersistence(auth, browserSessionPersistence);
 
-        onAuthStateChanged(auth, (user) => {
-          if (user && window.location.pathname.includes('/login.html')) {
-            setStoredSession(user);
-          }
-        });
+        // No passive auth restore on login page. Login only proceeds after explicit form submit.
 
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
@@ -115,7 +144,7 @@
             failedAttempts = 0;
             lockedUntil = 0;
             setStoredSession(credentials.user);
-            window.location.href = 'settings.html';
+            window.location.replace('/settings.html');
           } catch (error) {
             failedAttempts += 1;
             const penaltySeconds = failedAttempts >= 5 ? 30 : 10;

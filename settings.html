@@ -11,7 +11,14 @@
     <style>body{visibility:hidden;}</style>
     <script type="module">
       import { ensureAuthGate } from '/js/auth.js?v=1';
+      window.authOk = false;
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
       const authOk = await ensureAuthGate();
+      window.authOk = authOk;
       if (authOk) {
         document.body.style.visibility = 'visible';
       }
@@ -138,12 +145,22 @@
     </script>
     <script type="module">
       import { clearSession } from '/js/auth.js';
+
       document.getElementById('logout-button')?.addEventListener('click', async () => {
         await clearSession();
         window.location.replace('/login.html');
       });
+
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
+
+      if (window.authOk) {
+        await import('/js/main.js');
+        await import('/js/settings.js?v=8');
+      }
     </script>
-    <script type="module" src="/js/main.js"></script>
-    <script type="module" src="/js/settings.js?v=8"></script>
   </body>
 </html>

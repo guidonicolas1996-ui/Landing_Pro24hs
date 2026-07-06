@@ -35,7 +35,7 @@ async function getFirebaseAuth() {
   return firebaseAuthPromise;
 }
 
-async function waitForFirebaseUser(auth) {
+async function waitForFirebaseUser(auth, timeoutMs = 2500) {
   if (!auth || typeof auth.onAuthStateChanged !== 'function') {
     return null;
   }
@@ -45,6 +45,13 @@ async function waitForFirebaseUser(auth) {
       unsubscribe();
       resolve(user);
     });
+
+    if (typeof timeoutMs === 'number') {
+      setTimeout(() => {
+        unsubscribe();
+        resolve(auth.currentUser || null);
+      }, timeoutMs);
+    }
   });
 }
 
@@ -103,15 +110,16 @@ function redirectToLogin() {
 }
 
 async function clearSession() {
-  clearStoredSession();
   try {
     const auth = await getFirebaseAuth();
     if (auth && typeof auth.signOut === 'function') {
       await auth.signOut();
+      await waitForFirebaseUser(auth, 2500);
     }
   } catch (error) {
     console.warn('No se pudo cerrar la sesión de Firebase', error);
   }
+  clearStoredSession();
 }
 
 async function ensureAuthGate() {
@@ -123,18 +131,19 @@ async function ensureAuthGate() {
     return true;
   }
 
-  const storedSession = getStoredSession();
-  if (!storedSession) {
-    await clearSession();
-    redirectToLogin();
-    return false;
-  }
-
   try {
     const auth = await getFirebaseAuth();
-    const user = await waitForFirebaseUser(auth);
+    if (auth.currentUser && typeof auth.currentUser.reload === 'function') {
+      try {
+        await auth.currentUser.reload();
+      } catch (reloadError) {
+        console.warn('No se pudo recargar el usuario de Firebase', reloadError);
+      }
+    }
 
-    if (!user || !user.uid || user.uid !== storedSession.uid) {
+    const user = auth.currentUser || await waitForFirebaseUser(auth, 2500);
+
+    if (!user || !user.uid) {
       await clearSession();
       redirectToLogin();
       return false;
