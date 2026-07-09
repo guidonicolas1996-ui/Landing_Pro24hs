@@ -23,18 +23,27 @@
 
     <div class="page-shell">
       <header class="hero-header">
-        <div class="brand-mark" aria-label="Marca principal">
-          <img src="img/logo.png" alt="" class="brand-mark__image">
+        <div class="mascot-carousel" id="mascot-carousel" aria-live="polite">
+          <div id="mascot-left" class="mascot-carousel__item mascot-carousel__item--left" aria-hidden="true">
+            <img src="img/logo_view.png" alt="" class="mascot-carousel__logo" />
+            <img src="img/mascot.png" alt="" class="hero-header__mascot mascot-carousel__image" />
+          </div>
+          <div id="active-mascot" class="mascot-carousel__item mascot-carousel__item--center">
+            <img src="img/logo_view.png" alt="" class="mascot-carousel__logo" />
+            <img src="img/mascot.png" alt="" class="hero-header__mascot mascot-carousel__image" />
+          </div>
+          <div id="mascot-right" class="mascot-carousel__item mascot-carousel__item--right" aria-hidden="true">
+            <img src="img/logo_view.png" alt="" class="mascot-carousel__logo" />
+            <img src="img/mascot.png" alt="" class="hero-header__mascot mascot-carousel__image" />
+          </div>
         </div>
-        <img id="active-mascot" src="img/mascot.png" alt="" class="hero-header__mascot" />
-        <p class="hero-header__badge" id="access-badge">ACCESO VIP</p>
+        <!-- <p class="hero-header__badge" id="access-badge">ACCESO VIP</p> -->
       </header>
-
+      
       <main class="main-content">
         <section class="hero-card" aria-labelledby="hero-title">
-          <h1 id="hero-title">OBTENÉ UN <span class="gradient-text">EXTRA</span> EN TU <span class="gradient-text">PRIMER DEPÓSITO</span></h1>
-          <p id="hero-copy">Escribinos apretando el botón de abajo</span></span></p>
-
+          <h1 id="hero-title">OBTENÉ UN <span class="gradient-text">EXTRA</span> EN TU <span class="gradient-text">PRIMERA CARGA</span></h1>
+          <!-- <p id="hero-copy">Escribinos apretando el botón de abajo</span></span></p> -->
           <div class="hero-card__actions">
             <button type="button" class="whatsapp-button whatsapp-button--loading" id="whatsapp-button" aria-label="Abrir WhatsApp" disabled>
               <span class="button-aura"></span>
@@ -44,7 +53,7 @@
                 <span class="whatsapp-button__progress-fill"></span>
               </span>
             </button>
-            <p class="helper-text" id="helper-text">ATENCIÓN Y RETIROS LAS 24 HS</p>
+            <p class="helper-text" id="helper-text">CARGAS Y RETIROS AL INSTANTE - ATENCIÓN 24/7</p>
           </div>
         </section>
 

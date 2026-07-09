@@ -214,56 +214,18 @@ Page layout
   margin-bottom: 1rem;
 }
 
-.brand-mark {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-  padding: 0.55rem 0.95rem;
-  min-height: 3.2rem;
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s;
-  overflow: hidden;
-}
-
-.brand-mark--ready {
-  opacity: 1;
-  visibility: visible;
-}
-
-.brand-mark--hidden {
-  opacity: 0;
-  transform: translateY(-200px);
-  visibility: hidden;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  pointer-events: none;
-}
-
-.brand-mark--drop-in {
-  animation: dropIn 0.75s ease-out both;
-  transition: none;
-  will-change: transform, opacity;
-}
-
-.brand-mark__image {
-  width: clamp(5.5rem, 16vw, 7rem);
-  height: auto;
-}
-
 .hero-header__mascot,
 #active-logo,
 #active-mascot {
-  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1), transform 800ms cubic-bezier(0.22, 1, 0.36, 1), filter 800ms ease;
   transform-origin: center center;
-  will-change: opacity, transform;
+  will-change: transform, opacity, filter;
+}
+
+.hero-header__mascot:not(.mascot-carousel__item),
+#active-logo:not(.mascot-carousel__item),
+#active-mascot:not(.mascot-carousel__item) {
+  position: relative;
 }
 
 .hero-header__mascot--enter,
@@ -271,8 +233,6 @@ Page layout
   animation: scaleIn 5000ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.hero-header__mascot--initial,
-#active-mascot--initial,
 .hero-header__badge--initial,
 .hero-card--initial {
   animation: scaleIn var(--enter-duration, 2000ms) cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -281,6 +241,11 @@ Page layout
 .hero-header__mascot--initial,
 #active-mascot--initial {
   --enter-duration: 2400ms;
+}
+
+.hero-header__mascot--initial:not(.mascot-carousel__item),
+#active-mascot--initial:not(.mascot-carousel__item) {
+  animation: scaleIn var(--enter-duration, 2000ms) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero-header__badge--initial {
@@ -296,9 +261,105 @@ Page layout
   will-change: opacity, transform;
 }
 
+.mascot-carousel {
+  position: relative;
+  width: min(100%, 24rem);
+  min-height: clamp(16rem, 34vw, 20rem);
+  display: grid;
+  place-items: center;
+  perspective: 1400px;
+  perspective-origin: center center;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.mascot-carousel__item {
+  grid-area: 1 / 1;
+  position: relative;
+  width: min(100%, 16rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transition-property: transform, opacity, filter;
+  transition-duration: 1400ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  margin: 0;
+}
+
+.mascot-carousel__logo {
+  display: block;
+  width: clamp(7.5rem, 21vw, 10.2rem);
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 0.1rem;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+  transform: translateZ(0);
+  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.mascot-carousel__image {
+  display: block;
+  width: min(100%, 16rem);
+}
+
+.mascot-carousel__item--left {
+  transform: translateX(-8.2rem) translateZ(-70px) rotateY(22deg) scale(0.72);
+  opacity: 0.35;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.75)) saturate(0.9);
+  z-index: 1;
+}
+
+.mascot-carousel__item--center {
+  transform: translateX(0) translateZ(0) rotateY(0deg) scale(1);
+  opacity: 1;
+  filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 1));
+  z-index: 3;
+}
+
+.mascot-carousel__item--right {
+  transform: translateX(8.2rem) translateZ(-70px) rotateY(-22deg) scale(0.72);
+  opacity: 0.35;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.75)) saturate(0.9);
+  z-index: 1;
+}
+
+.mascot-carousel__item--incoming-right {
+  transform: translateX(14rem) translateZ(-110px) rotateY(-28deg) scale(0.68);
+  opacity: 0;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.65)) saturate(0.8);
+}
+
+.mascot-carousel__item--transition-center {
+  transform: translateX(0) translateZ(0) rotateY(0deg) scale(1);
+  opacity: 1;
+  filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 1));
+  z-index: 3;
+}
+
+.mascot-carousel__item--transition-left {
+  transform: translateX(-6.6rem) translateZ(-90px) rotateY(18deg) scale(0.8);
+  opacity: 0.6;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.82)) saturate(0.95);
+  z-index: 2;
+}
+
+.mascot-carousel__item--transition-right {
+  transform: translateX(6.6rem) translateZ(-90px) rotateY(-18deg) scale(0.8);
+  opacity: 0.6;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.82)) saturate(0.95);
+  z-index: 2;
+}
+
 .hero-header__mascot {
   width: min(100%, 16rem);
-  position: relative;
   filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 1));
   object-fit: contain;
   object-position: center;
@@ -314,6 +375,33 @@ Page layout
   filter: blur(20px);
   z-index: -1;
   pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .mascot-carousel {
+    width: min(100%, 18rem);
+    min-height: clamp(13rem, 26vw, 16rem);
+  }
+
+  .mascot-carousel__item {
+    width: min(100%, 13rem);
+  }
+
+  .mascot-carousel__item--left {
+    transform: translateX(-5rem) translateZ(-60px) rotateY(20deg) scale(0.68);
+  }
+
+  .mascot-carousel__item--right {
+    transform: translateX(5rem) translateZ(-60px) rotateY(-20deg) scale(0.68);
+  }
+
+  .mascot-carousel__item--transition-left {
+    transform: translateX(-4.1rem) translateZ(-80px) rotateY(16deg) scale(0.78);
+  }
+
+  .mascot-carousel__item--transition-right {
+    transform: translateX(4.1rem) translateZ(-80px) rotateY(-16deg) scale(0.78);
+  }
 }
 
 .hero-header__badge {
@@ -333,15 +421,25 @@ Page layout
   width: min(100%, 30rem);
   display: grid;
   gap: 1.2rem;
+  margin-top: clamp(1rem, 2.4vw, 1.6rem);
 }
 
 .hero-card {
   position: relative;
-  padding: clamp(1.35rem, 3vw, 2rem);
   border-radius: var(--radius-lg);
+
+  padding-top: clamp(1.35rem, 3vw, 2rem);
+  padding-left: clamp(1.8rem, 4vw, 2.5rem);
+  padding-right: clamp(1.8rem, 4vw, 2.5rem);
+
+  /*
+
+  padding: clamp(1.35rem, 3vw, 2rem);
   background: linear-gradient(140deg, rgba(17, 13, 51, 0.98), rgba(30, 22, 67, 0.96));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow); 
+  
+  Reset*/
   overflow: hidden;
 }
 
@@ -360,14 +458,14 @@ Page layout
   inset: -5rem -3rem auto auto;
   width: 12rem;
   height: 12rem;
-  background: var(--theme-glow-1);
+  /* background: var(--theme-glow-1); Reset*/
 }
 
 .hero-card::after {
   inset: auto auto -4rem -2rem;
   width: 10rem;
   height: 10rem;
-  background: var(--theme-glow-2);
+  /* background: var(--theme-glow-2); Reset*/
 }
 
 .hero-card h1 {
@@ -1743,7 +1841,7 @@ Animations
 @keyframes dropIn {
   0% {
     opacity: 0;
-    transform: translateY(-220px);
+    transform: translateY(-50px);
   }
   100% {
     opacity: 1;

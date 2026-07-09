@@ -1,10 +1,10 @@
 /* Configuración principal de textos y destino del botón */
 let landingContent = {
   accessBadge: 'ACCESO VIP',
-  heroTitle: 'OBTENÉ UN <span class="gradient-text">EXTRA</span> EN TU <span class="gradient-text">PRIMER DEPÓSITO</span>',
+  heroTitle: 'OBTENÉ UN <span class="gradient-text">EXTRA</span> EN TU <span class="gradient-text">PRIMERA CARGA</span>',
   heroCopy: 'Escribinos apretando el botón de abajo',
   ctaLabel: 'CARGANDO PROMOCIÓN...',
-  helperText: 'ATENCIÓN Y RETIROS LAS 24 HS',
+  helperText: 'CARGAS Y RETIROS AL INSTANTE - ATENCIÓN 24/7',
   footerText1: 'Bono no extraíble, válido solo para slots. Mínimo de carga: $2.000.',
   footerText2: '© 2026 el juego es solo +18. Operá con responsabilidad.',
   whatsappUrl: ''
@@ -971,36 +971,176 @@ function setLandingContent(content, saveRemote = true) {
   return landingContent;
 }
 
-function fadeAsset(element, src, alt) {
-  if (!element) return;
+function getMascotCarouselItems() {
+  const carousel = document.getElementById('mascot-carousel');
+  if (!carousel) return null;
 
-  const currentSrc = element.getAttribute('src');
-  if (currentSrc === src) {
-    element.setAttribute('alt', alt);
+  const createItem = (id, cssClass, ariaHidden = false) => {
+    const item = document.createElement('div');
+    item.id = id;
+    item.className = `mascot-carousel__item ${cssClass}`;
+    item.alt = '';
+    if (ariaHidden) {
+      item.setAttribute('aria-hidden', 'true');
+    }
+
+    const logo = document.createElement('img');
+    logo.className = 'mascot-carousel__logo';
+    logo.alt = '';
+    item.appendChild(logo);
+
+    const mascot = document.createElement('img');
+    mascot.className = 'hero-header__mascot mascot-carousel__image';
+    mascot.alt = '';
+    item.appendChild(mascot);
+
+    return item;
+  };
+
+  let left = document.getElementById('mascot-left');
+  let center = document.getElementById('active-mascot');
+  let right = document.getElementById('mascot-right');
+
+  if (!left) {
+    left = createItem('mascot-left', 'mascot-carousel__item--left', true);
+    carousel.appendChild(left);
+  }
+
+  if (!center) {
+    center = createItem('active-mascot', 'mascot-carousel__item--center');
+    carousel.appendChild(center);
+  }
+
+  if (!right) {
+    right = createItem('mascot-right', 'mascot-carousel__item--right', true);
+    carousel.appendChild(right);
+  }
+
+  const ensureMascotImage = (item) => {
+    let mascot = item.querySelector('.mascot-carousel__image');
+    if (!mascot) {
+      mascot = document.createElement('img');
+      mascot.className = 'hero-header__mascot mascot-carousel__image';
+      mascot.alt = '';
+      item.appendChild(mascot);
+    }
+
+    if (!mascot.getAttribute('data-default-src')) {
+      mascot.setAttribute('data-default-src', mascot.getAttribute('src') || '/img/mascot.png');
+    }
+
+    return mascot;
+  };
+
+  const ensureLogoImage = (item) => {
+    let logo = item.querySelector('.mascot-carousel__logo');
+    if (!logo) {
+      logo = document.createElement('img');
+      logo.className = 'mascot-carousel__logo';
+      logo.alt = '';
+      item.insertBefore(logo, item.firstChild);
+    }
+    return logo;
+  };
+
+  ensureMascotImage(left);
+  ensureMascotImage(center);
+  ensureMascotImage(right);
+  ensureLogoImage(left);
+  ensureLogoImage(center);
+  ensureLogoImage(right);
+
+  return { left, center, right };
+}
+
+function updateMascotCarousel(casinoId) {
+  const themeIds = Array.isArray(activeThemes) && activeThemes.length
+    ? activeThemes
+    : [casinoId || getDefaultCasino()];
+
+  if (!themeIds.length) return;
+
+  const items = getMascotCarouselItems();
+  if (!items) return;
+
+  const { left, center, right } = items;
+
+  const currentThemeId = casinoId || activeTheme || themeIds[0];
+  const currentIndex = themeIds.indexOf(currentThemeId);
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+  const prevThemeId = themeIds[(safeIndex - 1 + themeIds.length) % themeIds.length];
+  const nextThemeId = themeIds[(safeIndex + 1) % themeIds.length];
+  const previousThemeId = center.getAttribute('data-casino-id') || currentThemeId;
+  const shouldAnimate = previousThemeId && previousThemeId !== currentThemeId && themeIds.length > 1;
+
+  const setImage = (item, themeId) => {
+    const mascot = item.querySelector('.mascot-carousel__image');
+    const logo = item.querySelector('.mascot-carousel__logo');
+    const fallbackUrl = mascot?.getAttribute('data-default-src') || mascot?.getAttribute('src') || '/img/mascot.png';
+    const mascotUrl = getImageUrl(dynamicCasinos[themeId]?.mascot) || fallbackUrl;
+
+    if (mascot) {
+      mascot.src = mascotUrl;
+      mascot.alt = dynamicCasinos[themeId]?.label || '';
+      mascot.setAttribute('data-casino-id', themeId);
+    }
+
+    if (logo) {
+      logo.src = getImageUrl(dynamicCasinos[themeId]?.logo) || '/img/logo_view.png';
+      logo.alt = dynamicCasinos[themeId]?.label || '';
+      logo.setAttribute('data-casino-id', themeId);
+    }
+
+    item.setAttribute('data-casino-id', themeId);
+  };
+
+  const setState = (item, state) => {
+    item.classList.remove(
+      'mascot-carousel__item--left',
+      'mascot-carousel__item--center',
+      'mascot-carousel__item--right',
+      'mascot-carousel__item--incoming-right',
+      'mascot-carousel__item--transition-left',
+      'mascot-carousel__item--transition-center',
+      'mascot-carousel__item--transition-right'
+    );
+    item.classList.add(state);
+  };
+
+  if (!left.getAttribute('data-default-src')) {
+    left.setAttribute('data-default-src', left.getAttribute('src') || '/img/mascot.png');
+  }
+  if (!center.getAttribute('data-default-src')) {
+    center.setAttribute('data-default-src', center.getAttribute('src') || '/img/mascot.png');
+  }
+  if (!right.getAttribute('data-default-src')) {
+    right.setAttribute('data-default-src', right.getAttribute('src') || '/img/mascot.png');
+  }
+
+  setImage(left, prevThemeId);
+  setImage(center, currentThemeId);
+  setImage(right, nextThemeId);
+
+  if (!shouldAnimate) {
+    setState(left, 'mascot-carousel__item--left');
+    setState(center, 'mascot-carousel__item--center');
+    setState(right, 'mascot-carousel__item--right');
     return;
   }
 
-  const nextImage = new Image();
-  nextImage.src = src;
+  setState(left, 'mascot-carousel__item--transition-left');
+  setState(center, 'mascot-carousel__item--transition-center');
+  setState(right, 'mascot-carousel__item--transition-right');
 
-  nextImage.onload = () => {
-    element.style.opacity = '0';
-    element.style.transform = 'scale(0.88)';
+  void left.offsetWidth;
+  void center.offsetWidth;
+  void right.offsetWidth;
 
-    window.setTimeout(() => {
-      element.setAttribute('src', src);
-      element.setAttribute('alt', alt);
-      element.style.opacity = '1';
-      element.style.transform = 'scale(1)';
-    }, 200);
-  };
-
-  if (!currentSrc) {
-    element.setAttribute('src', src);
-    element.setAttribute('alt', alt);
-    element.style.opacity = '1';
-    element.style.transform = 'scale(1)';
-  }
+  window.setTimeout(() => {
+    setState(left, 'mascot-carousel__item--left');
+    setState(center, 'mascot-carousel__item--center');
+    setState(right, 'mascot-carousel__item--right');
+  }, 20);
 }
 
 function applyRandomBackground() {
@@ -1030,50 +1170,14 @@ function refreshThemeRotation() {
   rotationTimerId = window.setInterval(rotateTheme, 5000);
 }
 
-let hasPlayedLogoDropIn = false;
-
 function applyTheme(casinoId) {
   const safeCasino = dynamicCasinos[casinoId] ? casinoId : getDefaultCasino();
   activeTheme = safeCasino;
   document.body.setAttribute('data-theme', safeCasino);
   setStoredActiveCasino(safeCasino);
 
-  const mascot = document.getElementById('active-mascot');
+  const mascot = document.getElementById('active-mascot') || document.querySelector('.mascot-carousel__item--center');
   const cards = document.querySelectorAll('[data-theme-card]');
-  const logosWrapper = document.querySelector('.brand-mark');
-
-  if (logosWrapper) {
-    logosWrapper.innerHTML = '';
-    activeThemes.forEach((id) => {
-      if (dynamicCasinos[id]) {
-        const image = document.createElement('img');
-        image.src = getImageUrl(dynamicCasinos[id].logo) || '';
-        image.alt = dynamicCasinos[id].label;
-        image.className = 'brand-mark__image';
-        image.setAttribute('data-casino-id', id);
-        logosWrapper.appendChild(image);
-      }
-    });
-
-    if (logosWrapper.children.length) {
-      if (!hasPlayedLogoDropIn) {
-        logosWrapper.classList.add('brand-mark--hidden');
-        window.requestAnimationFrame(() => {
-          logosWrapper.getBoundingClientRect();
-          window.requestAnimationFrame(() => {
-            logosWrapper.classList.remove('brand-mark--hidden');
-            logosWrapper.classList.add('brand-mark--drop-in');
-          });
-        });
-        window.setTimeout(() => {
-          logosWrapper.classList.remove('brand-mark--drop-in');
-        }, 1200);
-        hasPlayedLogoDropIn = true;
-      } else {
-        logosWrapper.classList.remove('brand-mark--hidden');
-      }
-    }
-  }
 
   cards.forEach((card) => {
     card.classList.toggle('is-active', activeThemes.includes(card.getAttribute('data-theme-card')));
@@ -1086,7 +1190,7 @@ function applyTheme(casinoId) {
   //applyRandomBackground();
 
   if (mascot) {
-    fadeAsset(mascot, getImageUrl(dynamicCasinos[safeCasino].mascot), dynamicCasinos[safeCasino].label);
+    updateMascotCarousel(safeCasino);
   }
 
   // Aplicar color del casino y blobs
@@ -1368,14 +1472,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (initialHeroCard) {
       initialHeroCard.classList.add('hero-card--initial');
     }
-    if (initialMascot) {
-      initialMascot.classList.add('hero-header__mascot--initial');
-    }
 
     window.setTimeout(() => {
       initialBadge?.classList.remove('hero-header__badge--initial');
       initialHeroCard?.classList.remove('hero-card--initial');
-      initialMascot?.classList.remove('hero-header__mascot--initial');
     }, 2600);
   };
 
