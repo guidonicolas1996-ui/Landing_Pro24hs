@@ -120,6 +120,92 @@ function rgbToHex(r, g, b) {
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
 }
 
+function parseCssColor(value) {
+  const normalized = `${value || ''}`.trim();
+  if (!normalized) {
+    return { r: 255, g: 255, b: 255, a: 1 };
+  }
+
+  const hexMatch = normalized.match(/^#?([a-f\d]{3}|[a-f\d]{6})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1].length === 3
+      ? hexMatch[1].split('').map((char) => `${char}${char}`).join('')
+      : hexMatch[1];
+    return {
+      r: parseInt(hex.slice(0, 2), 16),
+      g: parseInt(hex.slice(2, 4), 16),
+      b: parseInt(hex.slice(4, 6), 16),
+      a: 1
+    };
+  }
+
+  const rgbaMatch = normalized.match(/rgba?\(([^)]+)\)/i);
+  if (rgbaMatch) {
+    const [r, g, b, a = '1'] = rgbaMatch[1].split(',').map((part) => part.trim());
+    return {
+      r: Number.parseFloat(r),
+      g: Number.parseFloat(g),
+      b: Number.parseFloat(b),
+      a: Number.parseFloat(a)
+    };
+  }
+
+  return { r: 255, g: 255, b: 255, a: 1 };
+}
+
+function toCssColor(color) {
+  const r = Math.round(color.r);
+  const g = Math.round(color.g);
+  const b = Math.round(color.b);
+  const a = Number.isFinite(color.a) ? color.a : 1;
+  return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
+}
+
+function interpolateColor(startColor, endColor, progress) {
+  return {
+    r: startColor.r + (endColor.r - startColor.r) * progress,
+    g: startColor.g + (endColor.g - startColor.g) * progress,
+    b: startColor.b + (endColor.b - startColor.b) * progress,
+    a: startColor.a + (endColor.a - startColor.a) * progress
+  };
+}
+
+function animateBlobColors(colorVars, duration = 1000) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return;
+  }
+
+  const root = document.documentElement;
+  const blobEntries = [
+    ['--blob-1-color', colorVars.blob1],
+    ['--blob-2-color', colorVars.blob2],
+    ['--blob-3-color', colorVars.blob3],
+    ['--blob-4-color', colorVars.blob4],
+    ['--blob-5-color', colorVars.blob5]
+  ];
+
+  const startValues = blobEntries.map(([property]) => parseCssColor(getComputedStyle(root).getPropertyValue(property).trim()));
+  const endValues = blobEntries.map(([, value]) => parseCssColor(value));
+  const startTime = performance.now();
+
+  const tick = (currentTime) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+    blobEntries.forEach(([property], index) => {
+      const nextColor = interpolateColor(startValues[index], endValues[index], easedProgress);
+      root.style.setProperty(property, toCssColor(nextColor));
+    });
+
+    if (progress < 1) {
+      window.requestAnimationFrame(tick);
+    }
+  };
+
+  window.requestAnimationFrame(tick);
+}
+
 // Funciones de almacenamiento dinámico de casinos
 function dataURLtoBlob(dataURL) {
   const [header, base64] = dataURL.split(',');
@@ -1024,6 +1110,8 @@ function getMascotCarouselItems() {
   let left = document.getElementById('mascot-left');
   let center = document.getElementById('active-mascot');
   let right = document.getElementById('mascot-right');
+  let hidden1 = document.getElementById('mascot-hidden-1');
+  let hidden2 = document.getElementById('mascot-hidden-2');
 
   if (!left) {
     left = createItem('mascot-left', 'mascot-carousel__item--left', true);
@@ -1038,6 +1126,16 @@ function getMascotCarouselItems() {
   if (!right) {
     right = createItem('mascot-right', 'mascot-carousel__item--right', true);
     carousel.appendChild(right);
+  }
+
+  if (!hidden1) {
+    hidden1 = createItem('mascot-hidden-1', 'mascot-carousel__item--hidden', true);
+    carousel.appendChild(hidden1);
+  }
+
+  if (!hidden2) {
+    hidden2 = createItem('mascot-hidden-2', 'mascot-carousel__item--hidden', true);
+    carousel.appendChild(hidden2);
   }
 
   const ensureMascotImage = (item) => {
@@ -1070,11 +1168,15 @@ function getMascotCarouselItems() {
   ensureMascotImage(left);
   ensureMascotImage(center);
   ensureMascotImage(right);
+  ensureMascotImage(hidden1);
+  ensureMascotImage(hidden2);
   ensureLogoImage(left);
   ensureLogoImage(center);
   ensureLogoImage(right);
+  ensureLogoImage(hidden1);
+  ensureLogoImage(hidden2);
 
-  return { left, center, right };
+  return { left, center, right, hidden1, hidden2 };
 }
 
 function updateMascotCarousel(casinoId) {
@@ -1087,17 +1189,43 @@ function updateMascotCarousel(casinoId) {
   const items = getMascotCarouselItems();
   if (!items) return;
 
-  const { left, center, right } = items;
+  const { left, center, right, hidden1, hidden2 } = items;
 
   const currentThemeId = casinoId || activeTheme || themeIds[0];
   const currentIndex = themeIds.indexOf(currentThemeId);
   const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-  const prevThemeId = themeIds[(safeIndex - 1 + themeIds.length) % themeIds.length];
-  const nextThemeId = themeIds[(safeIndex + 1) % themeIds.length];
-  const previousThemeId = center.getAttribute('data-casino-id') || currentThemeId;
-  const shouldAnimate = previousThemeId && previousThemeId !== currentThemeId && themeIds.length > 1;
+  const count = themeIds.length;
+  const loopedThemeIds = count === 2 ? [...themeIds, ...themeIds] : themeIds;
 
-  const setImage = (item, themeId) => {
+  const normalizeIndex = (index, length) => ((index % length) + length) % length;
+  const getThemeAtOffset = (baseIndex, offset) => {
+    if (count === 1) return themeIds[0];
+    const normalizedIndex = normalizeIndex(baseIndex + offset, loopedThemeIds.length);
+    return loopedThemeIds[normalizedIndex];
+  };
+
+  const previousThemeId = center.getAttribute('data-casino-id') || currentThemeId;
+  const previousIndex = themeIds.indexOf(previousThemeId);
+  const isNextStep = previousIndex >= 0 && normalizeIndex(safeIndex - previousIndex, count) === 1;
+  const shouldAnimate = previousThemeId && previousThemeId !== currentThemeId && count > 1 && isNextStep;
+
+  const currentSlotThemes = {
+    hidden1: getThemeAtOffset(previousIndex >= 0 ? previousIndex : safeIndex, 2),
+    left: getThemeAtOffset(previousIndex >= 0 ? previousIndex : safeIndex, -1),
+    center: getThemeAtOffset(previousIndex >= 0 ? previousIndex : safeIndex, 0),
+    right: getThemeAtOffset(previousIndex >= 0 ? previousIndex : safeIndex, 1),
+    hidden2: getThemeAtOffset(previousIndex >= 0 ? previousIndex : safeIndex, 3)
+  };
+
+  const nextSlotThemes = {
+    hidden1: getThemeAtOffset(safeIndex, 2),
+    left: getThemeAtOffset(safeIndex, -1),
+    center: getThemeAtOffset(safeIndex, 0),
+    right: getThemeAtOffset(safeIndex, 1),
+    hidden2: getThemeAtOffset(safeIndex, 3)
+  };
+
+  const applyImagesForTheme = (item, themeId) => {
     const mascot = item.querySelector('.mascot-carousel__image');
     const logo = item.querySelector('.mascot-carousel__logo');
     const fallbackUrl = mascot?.getAttribute('data-default-src') || mascot?.getAttribute('src') || '/img/mascot.png';
@@ -1118,54 +1246,94 @@ function updateMascotCarousel(casinoId) {
     item.setAttribute('data-casino-id', themeId);
   };
 
-  const setState = (item, state) => {
+  const removeStateClasses = (item) => {
     item.classList.remove(
       'mascot-carousel__item--left',
       'mascot-carousel__item--center',
       'mascot-carousel__item--right',
+      'mascot-carousel__item--hidden',
+      'mascot-carousel__item--hidden-behind',
       'mascot-carousel__item--incoming-right',
       'mascot-carousel__item--transition-left',
       'mascot-carousel__item--transition-center',
-      'mascot-carousel__item--transition-right'
+      'mascot-carousel__item--transition-right',
+      'mascot-carousel__item--animate-center-to-left',
+      'mascot-carousel__item--animate-right-to-center',
+      'mascot-carousel__item--animate-left-to-right',
+      'mascot-carousel__item--animate-hidden-to-right',
+      'mascot-carousel__item--animate-left-to-hidden'
     );
+  };
+
+  const setState = (item, state) => {
+    removeStateClasses(item);
     item.classList.add(state);
   };
 
-  if (!left.getAttribute('data-default-src')) {
-    left.setAttribute('data-default-src', left.getAttribute('src') || '/img/mascot.png');
-  }
-  if (!center.getAttribute('data-default-src')) {
-    center.setAttribute('data-default-src', center.getAttribute('src') || '/img/mascot.png');
-  }
-  if (!right.getAttribute('data-default-src')) {
-    right.setAttribute('data-default-src', right.getAttribute('src') || '/img/mascot.png');
-  }
+  const animateItem = (item, animationClass) => {
+    removeStateClasses(item);
+    item.classList.add(animationClass);
+  };
 
-  setImage(left, prevThemeId);
-  setImage(center, currentThemeId);
-  setImage(right, nextThemeId);
+  [left, center, right, hidden1, hidden2].forEach((item) => {
+    if (!item.getAttribute('data-default-src')) {
+      item.setAttribute('data-default-src', item.querySelector('.mascot-carousel__image')?.getAttribute('src') || '/img/mascot.png');
+    }
+  });
+
+  const effectiveCount = count === 2 ? 4 : count;
+  const hiddenState = effectiveCount <= 3 ? 'mascot-carousel__item--hidden' : 'mascot-carousel__item--hidden-behind';
+
+  const setFinalStates = () => {
+    setState(hidden1, count === 1 ? 'mascot-carousel__item--hidden' : hiddenState);
+    setState(left, count === 1 ? 'mascot-carousel__item--hidden' : 'mascot-carousel__item--left');
+    setState(center, 'mascot-carousel__item--center');
+    setState(right, count === 1 ? 'mascot-carousel__item--hidden' : 'mascot-carousel__item--right');
+    setState(hidden2, count === 1 ? 'mascot-carousel__item--hidden' : hiddenState);
+  };
+
+  const assignThemeToSlots = (themeMap) => {
+    if (count === 1) {
+      applyImagesForTheme(center, themeMap.center);
+      return;
+    }
+
+    applyImagesForTheme(left, themeMap.left);
+    applyImagesForTheme(center, themeMap.center);
+    applyImagesForTheme(right, themeMap.right);
+    applyImagesForTheme(hidden1, themeMap.hidden1);
+    applyImagesForTheme(hidden2, themeMap.hidden2);
+  };
 
   if (!shouldAnimate) {
-    setState(left, 'mascot-carousel__item--left');
-    setState(center, 'mascot-carousel__item--center');
-    setState(right, 'mascot-carousel__item--right');
+    assignThemeToSlots(nextSlotThemes);
+    setFinalStates();
     return;
   }
 
-  setState(left, 'mascot-carousel__item--transition-left');
-  setState(center, 'mascot-carousel__item--transition-center');
-  setState(right, 'mascot-carousel__item--transition-right');
+  assignThemeToSlots(currentSlotThemes);
+  animateItem(center, 'mascot-carousel__item--animate-center-to-left');
+  animateItem(right, 'mascot-carousel__item--animate-right-to-center');
+
+  if (effectiveCount <= 3) {
+    animateItem(left, 'mascot-carousel__item--animate-left-to-right');
+  } else {
+    animateItem(left, 'mascot-carousel__item--animate-left-to-hidden');
+    animateItem(hidden1, 'mascot-carousel__item--animate-hidden-to-right');
+    setState(hidden2, 'mascot-carousel__item--hidden-behind');
+  }
 
   void left.offsetWidth;
   void center.offsetWidth;
   void right.offsetWidth;
 
   window.setTimeout(() => {
-    setState(left, 'mascot-carousel__item--left');
-    setState(center, 'mascot-carousel__item--center');
-    setState(right, 'mascot-carousel__item--right');
-  }, 20);
+    assignThemeToSlots(nextSlotThemes);
+    setFinalStates();
+  }, 1000);
 }
+
+
 
 function applyRandomBackground() {
   const fallback = '/img/background.png';
@@ -1225,11 +1393,7 @@ function applyTheme(casinoId) {
   document.documentElement.style.setProperty('--theme-primary', colorVars.medium);
   document.documentElement.style.setProperty('--theme-primary-strong', colorVars.dark);
   document.documentElement.style.setProperty('--theme-accent', colorVars.light);
-  document.documentElement.style.setProperty('--blob-1-color', colorVars.blob1);
-  document.documentElement.style.setProperty('--blob-2-color', colorVars.blob2);
-  document.documentElement.style.setProperty('--blob-3-color', colorVars.blob3);
-  document.documentElement.style.setProperty('--blob-4-color', colorVars.blob4);
-  document.documentElement.style.setProperty('--blob-5-color', colorVars.blob5);
+  animateBlobColors(colorVars, 1000);
 
   refreshThemeRotation();
 }

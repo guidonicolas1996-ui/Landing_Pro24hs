@@ -888,7 +888,7 @@ function renderLinksSummary(totals, prevTotals) {
   const links = [
     {
       title: 'Link principal',
-      subtitle: 'https://landing-pro24hs.vercel.app/?src=main',
+      subtitle: 'https://landing-pro24hs.vercel.app/',
       uniqueVisits: totals.primaryLinks || 0,
       uniqueVisitsPrev: prevTotals?.primaryLinks || 0,
       totalVisits: totals.primaryVisits || 0,
