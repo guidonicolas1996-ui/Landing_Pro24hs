@@ -292,13 +292,15 @@ function normalizeAnalyticsSource(rawSource) {
 }
 
 function hydrateAnalyticsSourceFromUrl() {
-  const srcParamRaw = new URLSearchParams(window.location.search).get('src') || '';
+  const params = new URLSearchParams(window.location.search);
+  const srcParamRaw = params.get('src') || '';
   const source = normalizeAnalyticsSource(srcParamRaw);
   activeAnalyticsSource = source;
 
-  if (source !== 'primary') {
+  if (params.has('src')) {
+    params.delete('src');
     const url = new URL(window.location.href);
-    url.searchParams.delete('src');
+    url.search = params.toString() ? `?${params.toString()}` : '';
     const cleanUrl = `${url.pathname}${url.search}${url.hash}`;
     if (window.location.pathname + window.location.search + window.location.hash !== cleanUrl) {
       window.history.replaceState({}, document.title, cleanUrl);
@@ -471,7 +473,7 @@ async function registerAnalyticsVisit() {
   const visitorId = await getPersistentVisitorId();
   const ip = await getIpAddress();
   const device = getDeviceMetadata(ip);
-  const source = getActiveAnalyticsSource();
+  const source = hydrateAnalyticsSourceFromUrl();
   const { sourceCountKey, sourceTotalKey, isAlternative } = getAnalyticsSourceKeys(source);
 
   console.log('[analytics] registerAnalyticsVisit src:', { srcParamRaw, source, sourceCountKey, sourceTotalKey, isAlternative });
@@ -567,7 +569,7 @@ async function registerAnalyticsWhatsappClick() {
   const visitorId = await getPersistentVisitorId();
   const ip = await getIpAddress();
   const device = getDeviceMetadata(ip);
-  const source = getActiveAnalyticsSource();
+  const source = hydrateAnalyticsSourceFromUrl();
   const { sourceUniqueKey, sourceTotalKey } = getAnalyticsSourceWhatsappKeys(source);
   const timestamp = new Date().toISOString();
   const currentHour = timestamp.slice(0, 13);
