@@ -473,7 +473,7 @@ async function registerAnalyticsVisit() {
   const visitorId = await getPersistentVisitorId();
   const ip = await getIpAddress();
   const device = getDeviceMetadata(ip);
-  const source = hydrateAnalyticsSourceFromUrl();
+  const source = getActiveAnalyticsSource();
   const { sourceCountKey, sourceTotalKey, isAlternative } = getAnalyticsSourceKeys(source);
 
   console.log('[analytics] registerAnalyticsVisit src:', { source, sourceCountKey, sourceTotalKey, isAlternative });
@@ -569,7 +569,7 @@ async function registerAnalyticsWhatsappClick() {
   const visitorId = await getPersistentVisitorId();
   const ip = await getIpAddress();
   const device = getDeviceMetadata(ip);
-  const source = hydrateAnalyticsSourceFromUrl();
+  const source = getActiveAnalyticsSource();
   const { sourceUniqueKey, sourceTotalKey } = getAnalyticsSourceWhatsappKeys(source);
   const timestamp = new Date().toISOString();
   const currentHour = timestamp.slice(0, 13);
