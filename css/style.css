@@ -1203,7 +1203,7 @@ Page layout
 .promo-banner__right .mascot-carousel {
   width: min(26rem, 100%);
   max-width: 100%;
-  transform: translateX(30%);
+  transform: translateX(24%);
   overflow: visible;
   padding-bottom: 1rem;
   min-height: 18.5rem;
@@ -1230,7 +1230,7 @@ Page layout
   .promo-banner__right .mascot-carousel {
     width: min(100%, 24rem);
     max-width: 100%;
-    transform: translateX(20%);
+    transform: translateX(28%);
     overflow: visible;
     min-height: 18rem;
     padding-bottom: 1rem;
