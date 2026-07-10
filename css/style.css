@@ -1220,30 +1220,34 @@ Page layout
   .promo-banner {
     display: block;
     padding-right: clamp(1.2rem, 2.5vw, 2rem);
-    min-height: auto;
+    min-height: 18rem;
   }
 
   .promo-banner__left {
+    width: min(52%, 100%);
     padding-left: clamp(1rem, 2vw, 1.4rem);
   }
 
   .promo-banner__right {
-    position: relative;
-    right: auto;
-    top: auto;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(18rem, 48%);
+    margin-top: 0;
     transform: none;
-    width: 100%;
-    margin-top: 1.4rem;
-    pointer-events: auto;
+    pointer-events: none;
+    justify-content: center;
+    align-items: center;
   }
 
   .promo-banner__right .mascot-carousel {
     width: 100%;
-    transform: none;
+    transform: translate(30%, 0);
   }
 
   .promo-banner__right .mascot-carousel .mascot-carousel__item {
-    width: min(100%, 16rem);
+    width: min(100%, 14rem);
   }
 
   .promo-banner__title {
