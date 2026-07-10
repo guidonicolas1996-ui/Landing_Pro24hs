@@ -96,6 +96,7 @@ Base styles
 
 html {
   font-size: 14.4px;
+  overflow-x: hidden;
 }
 
 body {
@@ -1200,12 +1201,14 @@ Page layout
   padding-right: clamp(1rem, 2vw, 1.4rem);
   width: 100%;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .promo-banner__right .mascot-carousel {
   width: min(26rem, 100%);
   max-width: 100%;
   transform: translate(30%, 0);
+  overflow-x: hidden;
 }
 
 .promo-banner__right .mascot-carousel .mascot-carousel__item {
@@ -1230,10 +1233,13 @@ Page layout
     width: 100%;
     margin-top: 1.5rem;
     pointer-events: auto;
+    overflow: hidden;
   }
 
   .promo-banner__right .mascot-carousel {
     width: 100%;
+    transform: none;
+    overflow: hidden;
   }
 }
 
