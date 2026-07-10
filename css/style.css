@@ -1219,35 +1219,34 @@ Page layout
 @media (max-width: 900px) {
   .promo-banner {
     display: block;
-    padding-right: clamp(1.2rem, 2.5vw, 2rem);
-    min-height: 18rem;
+    padding: 1.3rem 1rem 1.4rem;
+    min-height: auto;
   }
 
   .promo-banner__left {
-    width: min(52%, 100%);
+    position: relative;
+    width: 100%;
     padding-left: clamp(1rem, 2vw, 1.4rem);
   }
 
   .promo-banner__right {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(18rem, 48%);
-    margin-top: 0;
-    transform: none;
-    pointer-events: none;
-    justify-content: center;
+    position: relative;
+    width: 100%;
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
+    pointer-events: none;
   }
 
   .promo-banner__right .mascot-carousel {
-    width: 100%;
-    transform: translate(30%, 0);
+    width: min(18rem, 65%);
+    max-width: 18rem;
+    transform: translateX(30%);
   }
 
   .promo-banner__right .mascot-carousel .mascot-carousel__item {
-    width: min(100%, 14rem);
+    width: 100%;
   }
 
   .promo-banner__title {
