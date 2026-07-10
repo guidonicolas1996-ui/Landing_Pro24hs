@@ -1216,6 +1216,11 @@ Page layout
     min-height: 21.5rem;
   }
 
+  .promo-banner__left {
+    width: min(60vw, 22rem);
+    max-width: 60vw;
+  }
+
   .promo-banner__right {
     position: relative;
     right: auto;
