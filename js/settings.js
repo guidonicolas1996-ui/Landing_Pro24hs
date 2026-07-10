@@ -615,9 +615,7 @@ function setupSettingsPage() {
       const api = await waitForCasinosApi();
       console.log('[settings] waitForCasinosApi returned', api);
       const payload = {
-        accessBadge: document.getElementById('input-accessBadge').value,
         heroTitle: document.getElementById('input-heroTitle').value,
-        heroCopy: document.getElementById('input-heroCopy').value,
         promoLabel: document.getElementById('input-promoLabel').value,
         promoTitle: document.getElementById('input-promoTitle').value,
         promoNote: document.getElementById('input-promoNote').value,
@@ -680,9 +678,7 @@ function setupSettingsPage() {
       }
 
       const defaults = {
-        accessBadge: 'ACCESO VIP',
         heroTitle: 'OBTENÉ UN <span class="gradient-text">EXTRA</span> EN TU <span class="gradient-text">PRIMER DEPÓSITO</span>',
-        heroCopy: 'Escribinos apretando el botón de abajo',
         promoLabel: 'PARA USUARIOS NUEVOS',
         promoTitle: '<span class="gradient-text">100%</span> DE BONO EN TU <span class="gradient-text">PRIMERA CARGA</span>',
         promoNote: 'CARGAS Y RETIROS AL INSTANTE',
@@ -735,9 +731,7 @@ function setupSettingsPage() {
 
 function populateForm(content) {
   if (!content) return;
-  document.getElementById('input-accessBadge').value = content.accessBadge || '';
   document.getElementById('input-heroTitle').value = content.heroTitle || '';
-  document.getElementById('input-heroCopy').value = content.heroCopy || '';
   document.getElementById('input-promoLabel').value = content.promoLabel || '';
   document.getElementById('input-promoTitle').value = content.promoTitle || '';
   document.getElementById('input-promoNote').value = content.promoNote || '';

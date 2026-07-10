@@ -8,7 +8,7 @@ Variables
   --color-surface: #110d33;
   --color-surface-strong: #1e1643;
   --color-border: rgba(255, 255, 255, 0.12);
-  --background-image: url("/img/background1.png");
+  --background-image: url("/img/background.png");
   --background-color: #1e1643;
   --color-primary: #7d6cff;
   --color-primary-strong: #8f80ff;
@@ -104,7 +104,12 @@ body {
   min-height: 100dvh;
   font-family: "Syne", "Segoe UI", Roboto, Arial, sans-serif;
   color: var(--color-text);
+  
+  /*
   background-image: linear-gradient(140deg, rgba(6, 11, 29, 0.96) 0%, rgba(12, 20, 48, 0.96) 55%, rgba(20, 15, 53, 0.96) 100%), var(--background-image);
+  */
+  background-image: linear-gradient(140deg, rgba(0, 0, 0, 0.96) 0%, rgba(17, 17, 17, 0.86) 55%, rgba(0, 0, 0, 0.96) 100%), var(--background-image);
+
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
