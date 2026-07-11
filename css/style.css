@@ -1040,6 +1040,116 @@ Page layout
   .mascot-carousel__item--transition-right {
     transform: translateX(4.1rem) translateZ(-80px) rotateY(-16deg) scale(0.78);
   }
+
+  @keyframes mascot-carousel-center-to-left {
+    0% {
+      transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(-5rem, 0, -60px) rotateY(20deg) scale(0.68);
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes mascot-carousel-right-to-center {
+    0% {
+      transform: translate3d(5rem, 0, -60px) rotateY(-20deg) scale(0.68);
+      opacity: 0.25;
+    }
+    100% {
+      transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes mascot-carousel-left-to-right {
+    0% {
+      transform: translate3d(-5rem, 0, -60px) rotateY(20deg) scale(0.68);
+      opacity: 0.25;
+    }
+    100% {
+      transform: translate3d(5rem, 0, -60px) rotateY(-20deg) scale(0.68);
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes mascot-carousel-left-to-hidden {
+    0% {
+      transform: translate3d(-5rem, 0, -60px) rotateY(20deg) scale(0.68);
+      opacity: 0.25;
+    }
+    100% {
+      transform: translate3d(0, 0, -120px) scale(0.5);
+      opacity: 0;
+    }
+  }
+
+  @keyframes mascot-carousel-hidden-to-right {
+    0% {
+      transform: translate3d(0, 0, -120px) scale(0.5);
+      opacity: 0;
+    }
+    100% {
+      transform: translate3d(5rem, 0, -60px) rotateY(-20deg) scale(0.68);
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes logo-carousel-left-to-hidden {
+    0% {
+      transform: translate3d(-6.8rem, 0, -60px) rotateY(20deg) scale(0.68);
+      opacity: 0.25;
+    }
+    100% {
+      transform: translate3d(0, 0, -120px) scale(0.5);
+      opacity: 0;
+    }
+  }
+
+  @keyframes logo-carousel-hidden-to-right {
+    0% {
+      transform: translate3d(0, 0, -120px) scale(0.5);
+      opacity: 0;
+    }
+    100% {
+      transform: translate3d(6.8rem, 0, -60px) rotateY(-20deg) scale(0.68);
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes logo-carousel-center-to-left {
+    0% {
+      transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(-6.8rem, 0, -60px) rotateY(20deg) scale(0.68);
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes logo-carousel-right-to-center {
+    0% {
+      transform: translate3d(6.8rem, 0, -60px) rotateY(-20deg) scale(0.68);
+      opacity: 0.25;
+    }
+    100% {
+      transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes logo-carousel-left-to-right {
+    0% {
+      transform: translate3d(-6.8rem, 0, -60px) rotateY(20deg) scale(0.68);
+      opacity: 0.25;
+    }
+    100% {
+      transform: translate3d(6.8rem, 0, -60px) rotateY(-20deg) scale(0.68);
+      opacity: 0.25;
+    }
+  }
 }
 
 .hero-header__badge {
