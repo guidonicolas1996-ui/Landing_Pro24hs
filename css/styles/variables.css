@@ -1,0 +1,65 @@
+/* ===========================
+Variables
+=========================== */
+:root {
+  --color-bg: #060b1d;
+  --color-surface: #110d33;
+  --color-surface-strong: #1e1643;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --background-image: url("/img/background.png");
+  --background-color: #1e1643;
+  --color-primary: #7d6cff;
+  --color-primary-strong: #8f80ff;
+  --color-accent: #ffd166;
+  --color-success: #36d399;
+  --color-text: #f8f9ff;
+  --color-muted: #9bb0d2;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --transition: 180ms ease;
+  --theme-primary: #7d6cff;
+  --theme-primary-strong: #8f80ff;
+  --theme-accent: #ffd166;
+  --theme-success: #36d399;
+  --theme-accent-soft: rgba(255, 209, 102, 0.15);
+  --theme-accent-border: rgba(255, 209, 102, 0.35);
+  --theme-glow-1: rgba(125, 108, 255, 0.28);
+  --theme-glow-2: rgba(255, 209, 102, 0.16);
+  --theme-stroke-color: rgba(40, 24, 110, 0.96);
+  --theme-stroke-gradient: linear-gradient(90deg, rgba(70,50,200,0.95), rgba(40,24,110,0.96));
+}
+
+body[data-theme="ganamos"] {
+  --theme-primary: #b607bc;
+  --theme-primary-strong: #5e0274;
+  --theme-accent: #f1a3e7;
+  --theme-success: #25d366;
+  --theme-accent-soft: rgba(240, 173, 229, 0.15);
+  --theme-accent-border: rgba(240, 173, 229, 0.35);
+  --theme-glow-1: rgba(103, 1, 119, 0.3);
+  --theme-glow-2: rgba(90, 2, 102, 0.2);
+}
+
+body[data-theme="zeus"] {
+  --theme-primary: #2d8cff;
+  --theme-primary-strong: #64b4ff;
+  --theme-accent: #8dd4ff;
+  --theme-success: #25d366;
+  --theme-accent-soft: rgba(141, 212, 255, 0.16);
+  --theme-accent-border: rgba(141, 212, 255, 0.38);
+  --theme-glow-1: rgba(45, 140, 255, 0.28);
+  --theme-glow-2: rgba(141, 212, 255, 0.2);
+}
+
+body[data-theme="apostamos"] {
+  --theme-primary: #22c55e;
+  --theme-primary-strong: #4ade80;
+  --theme-accent: #86efac;
+  --theme-success: #22c55e;
+  --theme-accent-soft: rgba(134, 239, 172, 0.16);
+  --theme-accent-border: rgba(134, 239, 172, 0.38);
+  --theme-glow-1: rgba(34, 197, 94, 0.28);
+  --theme-glow-2: rgba(134, 239, 172, 0.18);
+}
+

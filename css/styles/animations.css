@@ -1,0 +1,81 @@
+/* ===========================
+Animations
+=========================== */
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes whatsappScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes whatsapp-glow {
+  0%,
+  100% {
+    box-shadow: 0 16px 32px rgba(37, 211, 102, 0.22);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 20px 42px rgba(37, 211, 102, 0.32);
+    transform: translateY(-1px);
+    
+  }
+}
+
+@keyframes whatsapp-halo {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
+}
+
+@keyframes dropIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes whatsapp-ring {
+  0% {
+    opacity: 0;
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.18);
+    transform: scale(0.95);
+  }
+  45% {
+    opacity: 0.22;
+    box-shadow: 0 0 0 12px rgba(37, 211, 102, 0.12);
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    box-shadow: 0 0 0 28px rgba(37, 211, 102, 0);
+    transform: scale(1.12);
+  }
+}
+
+
