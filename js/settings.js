@@ -587,7 +587,26 @@ function setupSettingsPage() {
   const modal = document.getElementById('new-casino-modal');
 
   if (openButton) {
-    openButton.addEventListener('click', openNewCasinoModal);
+    openButton.addEventListener('click', async () => {
+      try {
+        const api = await waitForCasinosApi();
+        const casinos = (api.getCasinos && api.getCasinos()) || {};
+        let count = 0;
+        if (Array.isArray(casinos)) {
+          count = casinos.length;
+        } else if (casinos && typeof casinos === 'object') {
+          count = Object.keys(casinos).length;
+        }
+        if (count >= 5) {
+          alert('No se puede crear más plataformas. Ya hay 5 plataformas (máximo 5).');
+          return;
+        }
+      } catch (e) {
+        console.warn('[settings] no fue posible verificar el número de plataformas', e);
+        // Si falla la verificación, permitimos abrir el modal para no bloquear al usuario
+      }
+      openNewCasinoModal();
+    });
   }
   if (closeButton) {
     closeButton.addEventListener('click', closeNewCasinoModal);

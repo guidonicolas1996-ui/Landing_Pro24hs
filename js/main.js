@@ -4,7 +4,7 @@ let landingContent = {
   heroTitle: 'BIENVENIDO A TU <span class="gradient-text">CASINO DE CONFIANZA</span>',
   heroCopy: 'Escribinos apretando el botón de abajo',
   promoLabel: 'PARA USUARIOS NUEVOS',
-  promoTitle: '<span class="gradient-text">EXTRA</span> DE BONO EN TU <span class="gradient-text">PRIMER CARGA</span>',
+  promoTitle: '<span class="gradient-text">EXTRA</span> DE BONO EN TU <span class="gradient-text">PRIMERA CARGA</span>',
   promoNote: 'CARGAS Y RETIROS AL INSTANTE',
   ctaLabel: 'CARGANDO PROMOCIÓN...',
   helperText: 'CARGAS Y RETIROS AL INSTANTE',
@@ -14,7 +14,18 @@ let landingContent = {
 };
 
 const MAX_CASINOS = 5;
-const BACKGROUND_IMAGES = ['/img/background1.png', '/img/background2.png', '/img/background3.png', '/img/background4.png', '/img/background5.png'];
+const BACKGROUND_IMAGES = [
+  '/img/background1.png',
+  '/img/background2.png',
+  '/img/background3.png',
+  '/img/background4.png',
+  '/img/background5.png',
+  '/img/background6.png',
+  '/img/background7.png',
+  '/img/background8.png',
+  '/img/background9.png',
+  '/img/background10.png'
+];
 const LOCAL_STORAGE_CASINOS_KEY = 'dynamicCasinos';
 const USE_REMOTE_STORAGE = typeof window !== 'undefined' && window.location.protocol !== 'file:';
 
@@ -81,32 +92,17 @@ function generateColorVariations(baseColor) {
     return {
       light: baseColor,
       medium: baseColor,
-      dark: baseColor,
-      blob1: `rgba(125, 108, 255, 0.9)`,
-      blob2: `rgba(163, 119, 255, 0.8)`,
-      blob3: `rgba(255, 209, 102, 0.78)`,
-      blob4: `rgba(255, 255, 255, 0.24)`,
-      blob5: `rgba(125, 108, 255, 0.4)`
+      dark: baseColor
     };
   }
   
   const light = rgbToHex(Math.min(rgb.r + 80, 255), Math.min(rgb.g + 80, 255), Math.min(rgb.b + 80, 255));
   const dark = rgbToHex(Math.max(rgb.r - 60, 0), Math.max(rgb.g - 60, 0), Math.max(rgb.b - 60, 0));
   
-  // Generar variaciones de color para los blobs
-  const blobBase = { r: rgb.r, g: rgb.g, b: rgb.b };
-  const blobLight = { r: Math.min(rgb.r + 40, 255), g: Math.min(rgb.g + 40, 255), b: Math.min(rgb.b + 40, 255) };
-  const blobMediumLight = { r: Math.min(rgb.r + 20, 255), g: Math.min(rgb.g + 20, 255), b: Math.min(rgb.b + 20, 255) };
-  
   return {
     light: light,
     medium: baseColor,
-    dark: dark,
-    blob1: `rgba(${blobBase.r}, ${blobBase.g}, ${blobBase.b}, 0.9)`,
-    blob2: `rgba(${blobLight.r}, ${blobLight.g}, ${blobLight.b}, 0.8)`,
-    blob3: `rgba(${blobMediumLight.r}, ${blobMediumLight.g}, ${blobMediumLight.b}, 0.78)`,
-    blob4: `rgba(255, 255, 255, 0.24)`,
-    blob5: `rgba(${Math.max(rgb.r - 40, 0)}, ${Math.max(rgb.g - 40, 0)}, ${Math.max(rgb.b - 40, 0)}, 0.4)`
+    dark: dark
   };
 }
 
@@ -121,92 +117,6 @@ function hexToRgb(hex) {
 
 function rgbToHex(r, g, b) {
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
-}
-
-function parseCssColor(value) {
-  const normalized = `${value || ''}`.trim();
-  if (!normalized) {
-    return { r: 255, g: 255, b: 255, a: 1 };
-  }
-
-  const hexMatch = normalized.match(/^#?([a-f\d]{3}|[a-f\d]{6})$/i);
-  if (hexMatch) {
-    const hex = hexMatch[1].length === 3
-      ? hexMatch[1].split('').map((char) => `${char}${char}`).join('')
-      : hexMatch[1];
-    return {
-      r: parseInt(hex.slice(0, 2), 16),
-      g: parseInt(hex.slice(2, 4), 16),
-      b: parseInt(hex.slice(4, 6), 16),
-      a: 1
-    };
-  }
-
-  const rgbaMatch = normalized.match(/rgba?\(([^)]+)\)/i);
-  if (rgbaMatch) {
-    const [r, g, b, a = '1'] = rgbaMatch[1].split(',').map((part) => part.trim());
-    return {
-      r: Number.parseFloat(r),
-      g: Number.parseFloat(g),
-      b: Number.parseFloat(b),
-      a: Number.parseFloat(a)
-    };
-  }
-
-  return { r: 255, g: 255, b: 255, a: 1 };
-}
-
-function toCssColor(color) {
-  const r = Math.round(color.r);
-  const g = Math.round(color.g);
-  const b = Math.round(color.b);
-  const a = Number.isFinite(color.a) ? color.a : 1;
-  return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
-}
-
-function interpolateColor(startColor, endColor, progress) {
-  return {
-    r: startColor.r + (endColor.r - startColor.r) * progress,
-    g: startColor.g + (endColor.g - startColor.g) * progress,
-    b: startColor.b + (endColor.b - startColor.b) * progress,
-    a: startColor.a + (endColor.a - startColor.a) * progress
-  };
-}
-
-function animateBlobColors(colorVars, duration = 1000) {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return;
-  }
-
-  const root = document.documentElement;
-  const blobEntries = [
-    ['--blob-1-color', colorVars.blob1],
-    ['--blob-2-color', colorVars.blob2],
-    ['--blob-3-color', colorVars.blob3],
-    ['--blob-4-color', colorVars.blob4],
-    ['--blob-5-color', colorVars.blob5]
-  ];
-
-  const startValues = blobEntries.map(([property]) => parseCssColor(getComputedStyle(root).getPropertyValue(property).trim()));
-  const endValues = blobEntries.map(([, value]) => parseCssColor(value));
-  const startTime = performance.now();
-
-  const tick = (currentTime) => {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    const easedProgress = 1 - Math.pow(1 - progress, 3);
-
-    blobEntries.forEach(([property], index) => {
-      const nextColor = interpolateColor(startValues[index], endValues[index], easedProgress);
-      root.style.setProperty(property, toCssColor(nextColor));
-    });
-
-    if (progress < 1) {
-      window.requestAnimationFrame(tick);
-    }
-  };
-
-  window.requestAnimationFrame(tick);
 }
 
 // Funciones de almacenamiento dinámico de casinos
@@ -1341,10 +1251,43 @@ function updateMascotCarousel(casinoId, carouselId = 'mascot-carousel', hasMasco
   void center.offsetWidth;
   void right.offsetWidth;
 
-  window.setTimeout(() => {
+  // Wait for the CSS animations to finish using animationend events so we
+  // always sync with the real CSS duration (logo carousel uses 1200ms).
+  const candidates = [left, center, right, hidden1, hidden2];
+  const animatedEls = candidates.filter((el) => {
+    if (!el) return false;
+    return Array.from(el.classList).some((cn) => cn.startsWith('mascot-carousel__item--animate-'));
+  });
+
+  if (animatedEls.length === 0) {
     assignThemeToSlots(nextSlotThemes);
     setFinalStates();
-  }, 1000);
+  } else {
+    let finished = 0;
+    const cleanup = () => {
+      animatedEls.forEach((el) => el.removeEventListener('animationend', onEnd));
+    };
+
+    const onEnd = (e) => {
+      finished += 1;
+      e.currentTarget.removeEventListener('animationend', onEnd);
+      if (finished >= animatedEls.length) {
+        clearTimeout(fallbackTimeout);
+        cleanup();
+        assignThemeToSlots(nextSlotThemes);
+        setFinalStates();
+      }
+    };
+
+    animatedEls.forEach((el) => el.addEventListener('animationend', onEnd));
+
+    // Fallback in case animationend doesn't fire for some reason
+    const fallbackTimeout = window.setTimeout(() => {
+      cleanup();
+      assignThemeToSlots(nextSlotThemes);
+      setFinalStates();
+    }, 2500);
+  }
 }
 
 
@@ -1400,7 +1343,7 @@ function applyTheme(casinoId) {
     updateMascotCarousel(safeCasino, 'logo-carousel', false);
   }
 
-  // Aplicar color del casino y blobs
+  // Aplicar color del casino
   const colorVars = generateColorVariations(dynamicCasinos[safeCasino].color);
   document.documentElement.style.setProperty('--primary-color', colorVars.medium);
   document.documentElement.style.setProperty('--primary-light', colorVars.light);
@@ -1408,7 +1351,6 @@ function applyTheme(casinoId) {
   document.documentElement.style.setProperty('--theme-primary', colorVars.medium);
   document.documentElement.style.setProperty('--theme-primary-strong', colorVars.dark);
   document.documentElement.style.setProperty('--theme-accent', colorVars.light);
-  animateBlobColors(colorVars, 1000);
 
   refreshThemeRotation();
 }
