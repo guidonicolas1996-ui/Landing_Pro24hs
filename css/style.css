@@ -1041,6 +1041,26 @@ Page layout
     transform: translateX(4.1rem) translateZ(-80px) rotateY(-16deg) scale(0.78);
   }
 
+  #logo-carousel .mascot-carousel__item--animate-left-to-hidden {
+    animation-name: logo-carousel-left-to-hidden-mobile;
+  }
+
+  #logo-carousel .mascot-carousel__item--animate-hidden-to-right {
+    animation-name: logo-carousel-hidden-to-right-mobile;
+  }
+
+  #logo-carousel .mascot-carousel__item--animate-center-to-left {
+    animation-name: logo-carousel-center-to-left-mobile;
+  }
+
+  #logo-carousel .mascot-carousel__item--animate-right-to-center {
+    animation-name: logo-carousel-right-to-center-mobile;
+  }
+
+  #logo-carousel .mascot-carousel__item--animate-left-to-right {
+    animation-name: logo-carousel-left-to-right-mobile;
+  }
+
   @keyframes mascot-carousel-center-to-left {
     0% {
       transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
@@ -1096,7 +1116,7 @@ Page layout
     }
   }
 
-  @keyframes logo-carousel-left-to-hidden {
+  @keyframes logo-carousel-left-to-hidden-mobile {
     0% {
       transform: translate3d(-6.8rem, 0, -60px) rotateY(20deg) scale(0.68);
       opacity: 0.25;
@@ -1107,7 +1127,7 @@ Page layout
     }
   }
 
-  @keyframes logo-carousel-hidden-to-right {
+  @keyframes logo-carousel-hidden-to-right-mobile {
     0% {
       transform: translate3d(0, 0, -120px) scale(0.5);
       opacity: 0;
@@ -1118,7 +1138,7 @@ Page layout
     }
   }
 
-  @keyframes logo-carousel-center-to-left {
+  @keyframes logo-carousel-center-to-left-mobile {
     0% {
       transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
       opacity: 1;
@@ -1129,7 +1149,7 @@ Page layout
     }
   }
 
-  @keyframes logo-carousel-right-to-center {
+  @keyframes logo-carousel-right-to-center-mobile {
     0% {
       transform: translate3d(6.8rem, 0, -60px) rotateY(-20deg) scale(0.68);
       opacity: 0.25;
@@ -1140,7 +1160,7 @@ Page layout
     }
   }
 
-  @keyframes logo-carousel-left-to-right {
+  @keyframes logo-carousel-left-to-right-mobile {
     0% {
       transform: translate3d(-6.8rem, 0, -60px) rotateY(20deg) scale(0.68);
       opacity: 0.25;
