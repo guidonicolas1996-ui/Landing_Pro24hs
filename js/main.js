@@ -15,16 +15,16 @@ let landingContent = {
 
 const MAX_CASINOS = 5;
 const BACKGROUND_IMAGES = [
-  '/img/background1.png',
-  '/img/background2.png',
-  '/img/background3.png',
-  '/img/background4.png',
-  '/img/background5.png',
-  '/img/background6.png',
-  '/img/background7.png',
-  '/img/background8.png',
-  '/img/background9.png',
-  '/img/background10.png'
+  '../../img/background1.png',
+  '../../img/background2.png',
+  '../../img/background3.png',
+  '../../img/background4.png',
+  '../../img/background5.png',
+  '../../img/background6.png',
+  '../../img/background7.png',
+  '../../img/background8.png',
+  '../../img/background9.png',
+  '../../img/background10.png'
 ];
 const LOCAL_STORAGE_CASINOS_KEY = 'dynamicCasinos';
 const USE_REMOTE_STORAGE = typeof window !== 'undefined' && window.location.protocol !== 'file:';
@@ -1048,7 +1048,7 @@ function getCarouselItems(carouselId, hasMascot = true) {
     }
 
     if (!mascot.getAttribute('data-default-src')) {
-      mascot.setAttribute('data-default-src', mascot.getAttribute('src') || '/img/mascot.png');
+      mascot.setAttribute('data-default-src', mascot.getAttribute('src') || './img/mascot.png');
     }
 
     return mascot;
@@ -1064,7 +1064,7 @@ function getCarouselItems(carouselId, hasMascot = true) {
     }
 
     if (!logo.getAttribute('data-default-src')) {
-      logo.setAttribute('data-default-src', logo.getAttribute('src') || '/img/logo_view.png');
+      logo.setAttribute('data-default-src', logo.getAttribute('src') || './img/logo_view.png');
     }
 
     return logo;
@@ -1148,7 +1148,7 @@ function updateMascotCarousel(casinoId, carouselId = 'mascot-carousel', hasMasco
   const applyImagesForTheme = (item, themeId) => {
     const logo = item.querySelector('.mascot-carousel__logo');
     const mascot = hasMascot ? item.querySelector('.mascot-carousel__image') : null;
-    const logoFallbackUrl = logo?.getAttribute('data-default-src') || logo?.getAttribute('src') || '/img/logo_view.png';
+    const logoFallbackUrl = logo?.getAttribute('data-default-src') || logo?.getAttribute('src') || './img/logo_view.png';
     const logoUrl = getImageUrl(dynamicCasinos[themeId]?.logo) || logoFallbackUrl;
 
     if (logo && !hasMascot) {
@@ -1158,7 +1158,7 @@ function updateMascotCarousel(casinoId, carouselId = 'mascot-carousel', hasMasco
     }
 
     if (mascot) {
-      const mascotFallbackUrl = mascot?.getAttribute('data-default-src') || mascot?.getAttribute('src') || '/img/mascot.png';
+      const mascotFallbackUrl = mascot?.getAttribute('data-default-src') || mascot?.getAttribute('src') || './img/mascot.png';
       const mascotUrl = getImageUrl(dynamicCasinos[themeId]?.mascot) || mascotFallbackUrl;
       mascot.src = mascotUrl;
       mascot.alt = dynamicCasinos[themeId]?.label || '';
@@ -1199,7 +1199,7 @@ function updateMascotCarousel(casinoId, carouselId = 'mascot-carousel', hasMasco
 
   [left, center, right, hidden1, hidden2].forEach((item) => {
     if (!item.getAttribute('data-default-src')) {
-      item.setAttribute('data-default-src', item.querySelector('.mascot-carousel__image')?.getAttribute('src') || '/img/mascot.png');
+      item.setAttribute('data-default-src', item.querySelector('.mascot-carousel__image')?.getAttribute('src') || './img/mascot.png');
     }
   });
 
@@ -1293,7 +1293,7 @@ function updateMascotCarousel(casinoId, carouselId = 'mascot-carousel', hasMasco
 
 
 function applyRandomBackground() {
-  const fallback = '/img/background.png';
+  const fallback = './img/background.png';
   const selectedBackground = BACKGROUND_IMAGES[Math.floor(Math.random() * BACKGROUND_IMAGES.length)] || fallback;
   document.documentElement.style.setProperty('--background-image', `url("${selectedBackground}")`);
 }
