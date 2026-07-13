@@ -1010,28 +1010,23 @@ function getActiveLandingConfig(configData) {
   const general = configData.general && typeof configData.general === 'object' ? configData.general : null;
   const alternatives = configData.alternatives && typeof configData.alternatives === 'object' ? configData.alternatives : {};
 
-  const fallbackConfig = { ...DEFAULT_LANDING_CONTENT, ...(general || {}) };
+  const activeLandingConfig = { ...DEFAULT_LANDING_CONTENT, ...(general || {}) };
 
   if (!normalizedSource) {
-    return fallbackConfig;
+    return activeLandingConfig;
   }
 
   const altConfig = alternatives[normalizedSource] && typeof alternatives[normalizedSource] === 'object'
     ? alternatives[normalizedSource]
     : null;
   if (!altConfig) {
-    return fallbackConfig;
+    return activeLandingConfig;
   }
 
-  if (altConfig.active === true) {
-    return {
-      ...DEFAULT_LANDING_CONTENT,
-      ...fallbackConfig,
-      ...altConfig
-    };
-  }
-
-  return fallbackConfig;
+  return {
+    ...activeLandingConfig,
+    ...altConfig
+  };
 }
 
 function setLandingContent(content, saveRemote = true) {
@@ -1627,9 +1622,15 @@ async function loadWhatsAppUrlUrgent() {
     const snapshot = await Promise.race([getDoc(docRef), timeoutPromise]);
     clearTimeout(timeoutId);
 
-    if (snapshot?.exists() && snapshot.data()?.landingContent?.whatsappUrl) {
-      landingContent.whatsappUrl = snapshot.data().landingContent.whatsappUrl;
-      console.debug('✓ WhatsApp URL cargado');
+    if (snapshot?.exists()) {
+      const remoteLandingContent = snapshot.data()?.landingContent;
+      if (remoteLandingContent) {
+        const activeLanding = getActiveLandingConfig(remoteLandingContent);
+        if (activeLanding.whatsappUrl) {
+          landingContent.whatsappUrl = activeLanding.whatsappUrl;
+          console.debug('✓ WhatsApp URL cargado');
+        }
+      }
     }
   } catch (error) {
     console.debug('WhatsApp URL no se cargó a tiempo:', error?.message || error);
