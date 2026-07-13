@@ -1,5 +1,5 @@
 /* Configuración principal de textos y destino del botón */
-let landingContent = {
+const DEFAULT_LANDING_CONTENT = {
   accessBadge: 'ACCESO VIP',
   heroTitle: 'BIENVENIDO A TU <span class="gradient-text">CASINO DE CONFIANZA</span>',
   heroCopy: 'Escribinos apretando el botón de abajo',
@@ -12,6 +12,8 @@ let landingContent = {
   footerText2: 'Advertencia de juego responsable (+18) - © 2026',
   whatsappUrl: ''
 };
+
+let landingContent = { ...DEFAULT_LANDING_CONTENT };
 
 const MAX_CASINOS = 5;
 const BACKGROUND_IMAGES = [
@@ -290,22 +292,31 @@ function normalizeAnalyticsSource(rawSource) {
   return 'primary';
 }
 
+function normalizeLandingSource(rawSource) {
+  const srcParam = String(rawSource ?? '').trim().toLowerCase();
+  if (!srcParam || ['primary', 'main', 'principal'].includes(srcParam)) {
+    return '';
+  }
+
+  const altMatch = srcParam.match(/^alt(?:[_-]?([1-5]))?$/);
+  if (altMatch) {
+    return altMatch[1] ? `alt${altMatch[1]}` : 'alt1';
+  }
+
+  const legacyAltMatch = srcParam.match(/^alternative(?:[_-]?([1-5]))?$/);
+  if (legacyAltMatch) {
+    return legacyAltMatch[1] ? `alt${legacyAltMatch[1]}` : 'alt1';
+  }
+
+  return '';
+}
+
 function hydrateAnalyticsSourceFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const srcParamRaw = params.get('src') || '';
   const source = normalizeAnalyticsSource(srcParamRaw);
   activeAnalyticsSource = source;
-
-  if (params.has('src')) {
-    params.delete('src');
-    const url = new URL(window.location.href);
-    url.search = params.toString() ? `?${params.toString()}` : '';
-    const cleanUrl = `${url.pathname}${url.search}${url.hash}`;
-    if (window.location.pathname + window.location.search + window.location.hash !== cleanUrl) {
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-  }
-
+  window.__activeLandingSource = normalizeLandingSource(srcParamRaw);
   return activeAnalyticsSource;
 }
 
@@ -986,8 +997,53 @@ function getLandingContent() {
   return landingContent;
 }
 
+function getActiveLandingConfig(configData) {
+  const source = typeof window !== 'undefined' && window.__activeLandingSource
+    ? window.__activeLandingSource
+    : (new URLSearchParams(window.location.search).get('src') || '');
+  const normalizedSource = normalizeLandingSource(source);
+
+  if (!configData || typeof configData !== 'object') {
+    return { ...DEFAULT_LANDING_CONTENT };
+  }
+
+  const general = configData.general && typeof configData.general === 'object' ? configData.general : null;
+  const alternatives = configData.alternatives && typeof configData.alternatives === 'object' ? configData.alternatives : {};
+
+  const fallbackConfig = { ...DEFAULT_LANDING_CONTENT, ...(general || {}) };
+
+  if (!normalizedSource) {
+    return fallbackConfig;
+  }
+
+  const altConfig = alternatives[normalizedSource] && typeof alternatives[normalizedSource] === 'object'
+    ? alternatives[normalizedSource]
+    : null;
+  if (!altConfig) {
+    return fallbackConfig;
+  }
+
+  if (altConfig.active === true) {
+    return {
+      ...DEFAULT_LANDING_CONTENT,
+      ...fallbackConfig,
+      ...altConfig
+    };
+  }
+
+  return fallbackConfig;
+}
+
 function setLandingContent(content, saveRemote = true) {
-  landingContent = Object.assign({}, landingContent, content || {});
+  const landingConfig = content && typeof content === 'object' ? content : {};
+  const activeConfig = getActiveLandingConfig(landingConfig);
+
+  const nextContent = {
+    ...DEFAULT_LANDING_CONTENT,
+    ...activeConfig
+  };
+
+  landingContent = nextContent;
   renderContent();
   if (saveRemote && typeof saveRemoteConfig === 'function') {
     saveRemoteConfig({ landingContent }).catch((e) => console.warn('Error guardando landingContent remoto', e));
@@ -1701,7 +1757,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // === PASO 5: Cargar casinos + textos en paralelo ===
-  void (async () => {
+  const applyInitialRemoteContent = async () => {
     try {
       const [casinosResult, configResult] = await Promise.allSettled([
         window.casinosReady,
@@ -1754,7 +1810,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Observar cambios en tiempo real
     observeRemoteConfig().catch(() => {});
-  })();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      void applyInitialRemoteContent();
+    }, { once: true });
+  } else {
+    void applyInitialRemoteContent();
+  }
 
   // Exponer API global
   window.casinosAPI = {
@@ -1812,25 +1876,11 @@ const landingSettingsAPI = {
 };
 
 if (typeof window !== 'undefined') {
-  const authGuard = window.authGuard || null;
-  const hasActiveSession = authGuard && typeof authGuard.isAuthenticated === 'function' ? authGuard.isAuthenticated() : false;
-  const guardedLandingSettingsAPI = hasActiveSession ? landingSettingsAPI : {
-    ...landingSettingsAPI,
-    addCasino: async () => { throw new Error('Acceso no autorizado'); },
-    removeCasino: async () => { throw new Error('Acceso no autorizado'); },
-    updateCasinoActive: async () => { throw new Error('Acceso no autorizado'); },
-    saveDynamicCasinos: async () => { throw new Error('Acceso no autorizado'); },
-    setActiveCasinos: async () => { throw new Error('Acceso no autorizado'); },
-    setLandingContent: () => { throw new Error('Acceso no autorizado'); },
-    saveRemoteConfig: async () => { throw new Error('Acceso no autorizado'); }
-  };
-
-  window.landingSettings = guardedLandingSettingsAPI;
-  try { console.log('[main] landingSettings assigned, hasActiveSession:', hasActiveSession); } catch(e){}
+  window.landingSettings = landingSettingsAPI;
   window.casinosAPI = {
-    ...guardedLandingSettingsAPI,
+    ...landingSettingsAPI,
     applyTheme,
-    setActiveCasinos: guardedLandingSettingsAPI.setActiveCasinos
+    setActiveCasinos: landingSettingsAPI.setActiveCasinos
   };
 }
 

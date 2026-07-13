@@ -1,14 +1,13 @@
 # Casino VIP Landing
 
-Esta aplicación funciona como una landing promocional premium para casinos, pensada para convertir visitas en contacto directo por WhatsApp. Combina una experiencia visual dinámica, gestión de branding por plataforma, autenticación administrativa y analytics en tiempo real.
+Esta aplicación funciona como una landing promocional premium para casinos, pensada para convertir visitas en contacto directo por WhatsApp. Combina una experiencia visual dinámica, gestión de branding por plataforma y persistencia remota en Firebase para mantener el contenido actualizado.
 
 ## Qué hace la app
 
 - Muestra una landing pública con hero section, banner promocional, carousel de mascotas/logos y botón de WhatsApp.
 - Permite alternar branding entre múltiples casinos activos, cambiando colores, mascota, logo y textos promocionales.
-- Ofrece un panel de administración para crear, editar, activar o eliminar plataformas y actualizar el contenido visible.
-- Registra visitas y clics de WhatsApp para medir rendimiento por fuente y por campaña.
 - Mantiene la configuración remota sincronizada con Firebase, con respaldo local para funcionamiento offline o en entornos simples.
+- Registra visitas y clics de WhatsApp para medir rendimiento por fuente y por campaña.
 
 ## Flujo principal
 
@@ -24,16 +23,13 @@ Esta aplicación funciona como una landing promocional premium para casinos, pen
 - Rotación automática de temas entre casinos activos.
 - Carousel de mascotas y logos con transición visual controlada.
 - Gestión dinámica de casinos desde una interfaz sencilla.
-- Autenticación administrativa con Firebase Auth.
-- Analytics con métricas de visitas, clics y detalle por fuente/links.
 - Persistencia remota en Firestore y fallback local mediante localStorage.
 
 ## Stack tecnológico
 
-- HTML5 para las páginas públicas y administrativas.
+- HTML5 para la landing pública.
 - CSS modular para separar estilos por secciones y componentes.
 - JavaScript ES modules para la lógica de la app.
-- Firebase Auth para acceso administrativo.
 - Firebase Firestore para persistir configuración, textos y analytics.
 - Cloudinary para subir y servir imágenes de logos y mascotas.
 - Vercel para el despliegue estático.
@@ -41,16 +37,10 @@ Esta aplicación funciona como una landing promocional premium para casinos, pen
 ## Estructura del proyecto
 
 - [index.html](index.html): landing pública principal.
-- [settings.html](settings.html): panel de administración para branding, textos y plataformas.
-- [analytics.html](analytics.html): dashboard de métricas y filtros.
-- [login.html](login.html): pantalla de acceso administrativo.
 - [css/styles.css](css/styles.css): entrypoint de estilos modularizados.
 - [css/style.css](css/style.css): copia del stylesheet original como referencia.
 - [css/styles](css/styles): carpeta con los archivos CSS separados por responsabilidad.
 - [js/main.js](js/main.js): lógica central de la landing, temas, carousels, analytics, Firebase y configuración dinámica.
-- [js/settings.js](js/settings.js): administración de casinos y formularios del panel.
-- [js/analytics.js](js/analytics.js): render y lógica del dashboard de analytics.
-- [js/auth.js](js/auth.js): manejo de sesión y guardas de autenticación.
 - [js/firebase.js](js/firebase.js): inicialización de Firebase.
 - [img](img): assets estáticos como logos, mascotas y fondos.
 - [vercel.json](vercel.json): configuración de despliegue en Vercel.
@@ -67,9 +57,9 @@ La app no depende de un solo tema fijo. En su corazón, la lógica carga un conj
 
 Todo eso se gestiona desde la sesión de administración y queda disponible para la landing en tiempo real.
 
-## Autenticación y seguridad
+## Persistencia y seguridad
 
-El acceso al panel de administración está protegido con Firebase Auth. La sesión se guarda en el almacenamiento del navegador y se valida antes de permitir acceso a las páginas sensibles como configuración y analytics.
+La landing mantiene la configuración de branding y textos en Firebase, con respaldo local y un flujo de carga seguro para la experiencia pública.
 
 ## Analytics
 
@@ -95,7 +85,7 @@ Opciones recomendadas:
 npx serve .
 ```
 
-Luego abrir la URL que entregue el servidor. Para probar la administración, acceder a [login.html](login.html) y usar las credenciales configuradas en Firebase.
+Luego abrir la URL que entregue el servidor.
 
 ## Despliegue
 
