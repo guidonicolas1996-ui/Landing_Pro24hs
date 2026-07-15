@@ -87,18 +87,15 @@
   }
 
   function trackConversion(payload = {}) {
-    try {
-      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-        window.fbq('track', 'Purchase', payload);
-      }
-    } catch (error) {
-      console.warn('Error trackConversion:', error);
-    }
+    return payload;
   }
 
   function trackWhatsAppClick() {
-    trackEvent('WhatsApp_Click', { event_category: 'engagement' });
-    App.analytics.trackConversion({ content_name: 'WhatsApp_Click' });
+    App.analytics.trackEvent('Lead', {
+      content_name: 'whatsapp_click',
+      content_type: 'lead',
+      event_category: 'engagement'
+    });
   }
 
   App.analytics.trackEvent = trackEvent;
