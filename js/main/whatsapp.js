@@ -118,14 +118,20 @@
   function handleWhatsAppClick(event) {
     if (event) {
       event.preventDefault();
+      event.stopPropagation();
     }
+
+    if (window.App?.state?.whatsappPixelSent) {
+      return;
+    }
+
+    window.App.state.whatsappPixelSent = true;
 
     if (typeof App.facebook?.handleWhatsAppClick === 'function') {
       App.facebook.handleWhatsAppClick();
     }
 
     App.analytics?.registerAnalyticsWhatsappClick?.().catch(() => {});
-    App.facebook?.enviarEventoFacebook?.().catch(() => {});
 
     window.setTimeout(() => {
       window.location.href = buildWhatsAppUrl();
@@ -136,10 +142,14 @@
     const selectors = ['.whatsapp-button', '[data-whatsapp]', '#whatsapp-button'];
     selectors.forEach((selector) => {
       document.querySelectorAll(selector).forEach((button) => {
-        if (!button.dataset.bound) {
-          button.addEventListener('click', handleWhatsAppClick);
-          button.dataset.bound = 'true';
+        if (button.dataset.bound === 'true') {
+          return;
         }
+
+        const handler = (event) => handleWhatsAppClick(event);
+        button.removeEventListener('click', handler);
+        button.addEventListener('click', handler);
+        button.dataset.bound = 'true';
       });
     });
   }

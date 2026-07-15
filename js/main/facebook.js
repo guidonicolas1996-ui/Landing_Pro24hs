@@ -33,6 +33,7 @@
 
     if (typeof window !== 'undefined' && typeof window.fbq === 'function' && App.config.FACEBOOK_PIXEL_ID) {
       window.fbq('init', App.config.FACEBOOK_PIXEL_ID);
+      window.fbq('set', 'autoConfig', false, App.config.FACEBOOK_PIXEL_ID);
       window.fbq('track', 'PageView');
       window.__facebookPixelInitialized = true;
       window.__facebookPixelId = App.config.FACEBOOK_PIXEL_ID;
