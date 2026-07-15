@@ -1488,12 +1488,9 @@ async function saveRemoteConfig(config) {
 // End Firebase
 
 function openWhatsApp() {
-  fbq('track', 'CompleteRegistration', { content_name: 'WhatsApp' });
-  setTimeout(() => {
-    if (landingContent.whatsappUrl && landingContent.whatsappUrl.trim()) {
-      window.open(landingContent.whatsappUrl, '_blank', 'noopener,noreferrer');
-    }
-  }, 200);
+  if (landingContent.whatsappUrl && landingContent.whatsappUrl.trim()) {
+    window.open(landingContent.whatsappUrl, '_blank', 'noopener,noreferrer');
+  }
 }
 
 function setViewportHeight() {
@@ -1719,31 +1716,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Prevenir comportamiento por defecto inmediato
       event.preventDefault();
       
-      // Ejecutar analytics y Facebook conversion en paralelo con timeout de 1.5 segundos
-      const conversionTimeout = new Promise((resolve) => {
-        setTimeout(() => resolve({ timedOut: true }), 1500);
+      // Ejecutar analytics y Pixel de FB en paralelo
+      const analyticsPromise = registerAnalyticsWhatsappClick().catch((err) => {
+        console.warn('⚠️ Error registrando click de WhatsApp en analytics:', err);
+        return null;
       });
       
-      const conversionPromise = Promise.all([
-        registerAnalyticsWhatsappClick().catch((err) => {
-          console.warn('Error registrando click de WhatsApp en analytics:', err);
-          return null;
-        }),
-        enviarEventoFacebook().catch((err) => {
-          console.warn('Error enviando evento a Facebook:', err);
-          return null;
-        })
-      ]);
+      const pixelPromise = enviarEventoFacebook().catch((err) => {
+        console.warn('⚠️ Error disparando evento a Pixel:', err);
+        return null;
+      });
       
-      // Esperar a que se complete la conversión o se agote el timeout
+      // Esperar a que ambas se completen (máximo 1 segundo)
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 1000));
+      
       try {
-        await Promise.race([conversionPromise, conversionTimeout]);
-        console.log('Evento de conversión completado o timeout alcanzado');
+        await Promise.race([Promise.all([analyticsPromise, pixelPromise]), timeoutPromise]);
       } catch (error) {
-        console.error('Error inesperado en conversión:', error);
+        console.error('❌ Error en flujo de evento:', error);
       }
       
-      // Finalmente, redirigir al usuario a WhatsApp
+      // Finalmente, redirigir al usuario a WhatsApp (con pequeño delay para que se procese)
+      await new Promise(resolve => setTimeout(resolve, 100));
       openWhatsApp();
     });
   }
@@ -1923,7 +1917,7 @@ function generateEventId() {
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+    if (parts.length === 2) return parts.pop().split(';').shift().trim();
     return '';
 }
 
@@ -2077,7 +2071,7 @@ function validateClickSecurity(clickTime) {
     return calculateTrustScore() >= 40;
 }
 
-// ===== 3. ENVIAR EVENTO A FACEBOOK Y API =====
+// ===== 3. ENVIAR EVENTO A FACEBOOK (PIXEL) =====
 function enviarEventoFacebook() {
     try {
         const clickTime = Date.now();
@@ -2087,64 +2081,39 @@ function enviarEventoFacebook() {
         }
         
         const eventId = generateEventId();
-        
-        // Disparar Pixel del navegador (Deduplicado usando eventID)
-        fbq('track', 'CompleteRegistration', { registration_id: eventId }, { eventID: eventId });
-        
+        const trustScore = calculateTrustScore();
         const fbp = getCookie('_fbp') || '';
         const fbc = getCookie('_fbc') || getCookie('fbclid') || new URL(window.location.href).searchParams.get('fbclid') || '';
         
-        // IMPORTANTE: Asegúrate de que este Access Token y tu Pixel ID correspondan a tus cuentas.
-        const ACCESS_TOKEN = 'EAAR7uPgFvj8BO2WoA8r9ZCZCtL70WDOs7OaLNQAuxNFCSewnN52LbA43EGBhF0vkAUSHy0A0WGZAgIB8gD6ZAZCEQjAJmZBBZA17DK5tadY0Wf8GnhZAS2maQZAC35qgvyzTBtsbZBFUYFen8Wfphy6gsOQMG7jDOMvV9x25oZBlVi1YyJmnp7YAfamrndzvktgPgZDZD';
-        
-        const eventData = {
-            fbp: fbp,
-            fbc: fbc,
-            event_id: eventId,
-            event_name: "CompleteRegistration",
-            event_source_url: window.location.href,
-            user_agent: navigator.userAgent,
-            event_time: Math.floor(Date.now() / 1000),
-            registration_id: eventId,
+        // Disparar Pixel de Facebook con datos enriquecidos
+        fbq('track', 'CompleteRegistration', {
             value: 1.00,
             currency: 'USD',
-            access_token: ACCESS_TOKEN,
-            custom_data: {
-                trust_score: calculateTrustScore(),
-                time_on_page: userInteractions.timeOnPage,
-                interactions: userInteractions.genuineInteractions,
-                mouse_movements: userInteractions.mouseMovements,
-                scroll_count: userInteractions.scrolls,
-                click_delay: clickTime - pageLoadTime,
-                screen_resolution: `${screen.width}x${screen.height}`,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                language: navigator.language
-            }
-        };
-
-        // LLAMADA A BACKEND (API de Conversiones)
-        return fetch('/api/facebook-conversion', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(eventData)
-        })
-        .then(res => res.json())
-        .then(data => {
-            // Callback al backend general
-            return fetch('/api/sendEvent', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ eventName: 'Contactar', eventData: eventData })
-            });
-        })
-        .then(res => res.json())
-        .then(() => true)
-        .catch(err => {
-            console.error('❌ Error en el servidor de conversiones:', err);
-            return false;
+            event_id: eventId,
+            fbp: fbp,
+            fbc: fbc,
+            trust_score: trustScore,
+            time_on_page: userInteractions.timeOnPage,
+            interactions: userInteractions.genuineInteractions,
+            mouse_movements: userInteractions.mouseMovements,
+            scroll_count: userInteractions.scrolls,
+            click_delay: clickTime - pageLoadTime,
+            screen_resolution: `${screen.width}x${screen.height}`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            language: navigator.language
+        }, { eventID: eventId });
+        
+        console.log('✅ Evento de Pixel disparado exitosamente:', {
+            eventId,
+            trustScore,
+            fbp,
+            fbc,
+            timeOnPage: userInteractions.timeOnPage
         });
+        
+        return Promise.resolve(true);
     } catch (e) {
-        console.error('❌ Error general de tracking:', e);
+        console.error('❌ Error en Pixel:', e);
         return Promise.resolve(false);
     }
 }
