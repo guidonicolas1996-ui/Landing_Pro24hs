@@ -18,7 +18,32 @@
   }
 
   function getActiveCasinos() {
-    return getSortedCasinoIds().filter((id) => App.state.dynamicCasinos[id]?.active);
+    const sortedIds = getSortedCasinoIds();
+    const hasExplicitFlags = sortedIds.some((id) => {
+      const casino = App.state.dynamicCasinos[id];
+      return casino && (typeof casino.active === 'boolean' || typeof casino.enabled === 'boolean' || typeof casino.isActive === 'boolean');
+    });
+
+    if (!hasExplicitFlags) {
+      return sortedIds.filter((id) => App.state.dynamicCasinos[id]);
+    }
+
+    return sortedIds.filter((id) => {
+      const casino = App.state.dynamicCasinos[id];
+      if (!casino) {
+        return false;
+      }
+      if (typeof casino.active === 'boolean') {
+        return casino.active;
+      }
+      if (typeof casino.enabled === 'boolean') {
+        return casino.enabled;
+      }
+      if (typeof casino.isActive === 'boolean') {
+        return casino.isActive;
+      }
+      return false;
+    });
   }
 
   function getDefaultCasino() {
@@ -370,7 +395,26 @@
   function applyRandomBackground() {
     const fallback = './img/background.png';
     const selectedBackground = App.config.BACKGROUND_IMAGES[Math.floor(Math.random() * App.config.BACKGROUND_IMAGES.length)] || fallback;
-    document.documentElement.style.setProperty('--background-image', `url("${selectedBackground}")`);
+    const resolvedBackground = new URL(selectedBackground, window.location.href).href;
+    const currentBackground = getComputedStyle(document.documentElement).getPropertyValue('--background-image').trim();
+
+    if (!currentBackground) {
+      document.documentElement.style.setProperty('--background-image', `url("${resolvedBackground}")`);
+      return;
+    }
+
+    document.documentElement.style.setProperty('--background-transition-image', `url("${resolvedBackground}")`);
+    document.body.classList.remove('background-fade');
+
+    requestAnimationFrame(() => {
+      document.body.classList.add('background-fade');
+    });
+
+    window.setTimeout(() => {
+      document.documentElement.style.setProperty('--background-image', `url("${resolvedBackground}")`);
+      document.body.classList.remove('background-fade');
+      document.documentElement.style.removeProperty('--background-transition-image');
+    }, 1000);
   }
 
   function stopThemeRotation() {
@@ -397,9 +441,14 @@
   function applyTheme(casinoId, options = {}) {
     const { animate = true } = options;
     const safeCasino = App.state.dynamicCasinos[casinoId] ? casinoId : getDefaultCasino();
+    App.state.activeThemes = App.state.activeThemes?.length ? App.state.activeThemes : getActiveCasinos();
     App.state.activeTheme = safeCasino;
     document.body.setAttribute('data-theme', safeCasino);
     setStoredActiveCasino(safeCasino);
+
+    if (typeof App.casinos?.applyRandomBackground === 'function') {
+      App.casinos.applyRandomBackground();
+    }
 
     const mascot = document.getElementById('active-mascot') || document.querySelector('.mascot-carousel__item--center');
     const cards = document.querySelectorAll('[data-theme-card]');

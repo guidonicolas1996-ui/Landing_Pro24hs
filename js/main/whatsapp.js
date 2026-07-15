@@ -68,22 +68,45 @@
   }
 
   function buildWhatsAppUrl() {
+    const remoteUrl = App.state.landingContent?.whatsappUrl?.trim();
+    if (remoteUrl) {
+      return remoteUrl;
+    }
+
     const number = App.config.WHATSAPP_NUMBER || '573001234567';
     const message = encodeURIComponent(App.config.WHATSAPP_MESSAGE || 'Hola, quiero más información.');
     const base = `https://wa.me/${number}`;
     return message ? `${base}?text=${message}` : base;
   }
 
+  function resolveRemoteLandingContent(remoteConfig) {
+    const sources = [
+      remoteConfig?.landingContent,
+      remoteConfig?.landing,
+      remoteConfig?.content,
+      remoteConfig?.config,
+      remoteConfig
+    ];
+
+    for (const source of sources) {
+      if (source && typeof source === 'object') {
+        return source;
+      }
+    }
+
+    return {};
+  }
+
   async function loadWhatsAppUrlUrgent() {
     startButtonProgress();
     try {
       const remoteConfig = await App.storage?.getRemoteConfig?.();
-      if (remoteConfig?.landingContent) {
-        const activeLanding = App.content?.getActiveLandingConfig?.(remoteConfig.landingContent);
-        if (activeLanding?.whatsappUrl) {
-          App.state.landingContent.whatsappUrl = activeLanding.whatsappUrl;
-          App.content?.renderContent?.();
-        }
+      const remoteLandingSource = resolveRemoteLandingContent(remoteConfig);
+      const activeLanding = App.content?.getActiveLandingConfig?.(remoteLandingSource);
+      const remoteWhatsAppUrl = activeLanding?.whatsappUrl || remoteConfig?.whatsappUrl || remoteLandingSource?.whatsappUrl;
+      if (remoteWhatsAppUrl) {
+        App.state.landingContent.whatsappUrl = remoteWhatsAppUrl;
+        App.content?.renderContent?.();
       }
     } catch (error) {
       console.warn('WhatsApp URL no se cargó a tiempo:', error);

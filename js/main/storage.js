@@ -12,12 +12,126 @@
     }
   }
 
+  function getLocalCasinoOrder() {
+    try {
+      const stored = localStorage.getItem(App.config.LOCAL_STORAGE_CASINOS_KEY + ':order');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
   function setLocalDynamicCasinos(casinos) {
     try {
       localStorage.setItem('dynamicCasinos', JSON.stringify(casinos || {}));
     } catch (error) {
       console.warn('Error guardando casinos locales en localStorage:', error);
     }
+  }
+
+  function setLocalCasinoOrder(order) {
+    try {
+      localStorage.setItem(App.config.LOCAL_STORAGE_CASINOS_KEY + ':order', JSON.stringify(order || []));
+    } catch (error) {
+      console.warn('Error guardando orden de casinos locales en localStorage:', error);
+    }
+  }
+
+  function extractRemoteCasinos(configData) {
+    const candidates = [
+      configData?.casinos,
+      configData?.dynamicCasinos,
+      configData?.casinoData,
+      configData?.landingContent?.casinos,
+      configData?.landingContent?.dynamicCasinos,
+      configData?.config?.casinos,
+      configData?.config?.dynamicCasinos
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate === 'object' && !Array.isArray(candidate) && Object.keys(candidate).length) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  function extractRemoteCasinoOrder(configData) {
+    const candidates = [
+      configData?.casinoOrder,
+      configData?.dynamicCasinoOrder,
+      configData?.landingContent?.casinoOrder,
+      configData?.landingContent?.dynamicCasinoOrder,
+      configData?.config?.casinoOrder,
+      configData?.config?.dynamicCasinoOrder
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate) && candidate.length) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  function extractRemoteActiveCasinoIds(configData) {
+    const candidates = [
+      configData?.activeCasinos,
+      configData?.activeCasinoIds,
+      configData?.activeCasinoOrder,
+      configData?.landingContent?.activeCasinos,
+      configData?.landingContent?.activeCasinoIds,
+      configData?.config?.activeCasinos,
+      configData?.config?.activeCasinoIds
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate) && candidate.length) {
+        return candidate.filter(Boolean);
+      }
+    }
+
+    return null;
+  }
+
+  function normalizeRemoteCasinos(casinos, activeIds) {
+    if (!casinos || typeof casinos !== 'object' || Array.isArray(casinos)) {
+      return {};
+    }
+
+    const normalized = {};
+    const resolvedActiveIds = Array.isArray(activeIds) ? activeIds.filter(Boolean) : [];
+    const hasExplicitFlags = Object.values(casinos).some((casino) => {
+      if (!casino || typeof casino !== 'object') {
+        return false;
+      }
+      return typeof casino.active === 'boolean' || typeof casino.enabled === 'boolean' || typeof casino.isActive === 'boolean';
+    });
+
+    Object.keys(casinos).forEach((id) => {
+      const sourceCasino = casinos[id];
+      const nextCasino = sourceCasino && typeof sourceCasino === 'object' ? { ...sourceCasino } : { label: sourceCasino };
+
+      if (typeof nextCasino.active !== 'boolean') {
+        if (typeof nextCasino.enabled === 'boolean') {
+          nextCasino.active = nextCasino.enabled;
+        } else if (typeof nextCasino.isActive === 'boolean') {
+          nextCasino.active = nextCasino.isActive;
+        } else if (resolvedActiveIds.length) {
+          nextCasino.active = resolvedActiveIds.includes(id);
+        } else if (hasExplicitFlags) {
+          nextCasino.active = false;
+        } else {
+          nextCasino.active = true;
+        }
+      }
+
+      normalized[id] = nextCasino;
+    });
+
+    return normalized;
   }
 
   async function uploadImageFile(source, casinoId, type) {
@@ -123,47 +237,42 @@
 
   async function loadDynamicCasinos() {
     const localCasinos = getLocalDynamicCasinos();
-
-    if (localCasinos && typeof localCasinos === 'object' && Object.keys(localCasinos).length) {
-      App.state.dynamicCasinos = localCasinos;
-      try {
-        const order = JSON.parse(localStorage.getItem(App.config.LOCAL_STORAGE_CASINOS_KEY + ':order') || 'null');
-        if (Array.isArray(order)) App.state.dynamicCasinoOrder = order;
-      } catch (e) {}
-      return App.state.dynamicCasinos;
-    }
+    const localOrder = getLocalCasinoOrder();
 
     if (!App.config.USE_REMOTE_STORAGE) {
       App.state.dynamicCasinos = localCasinos;
+      App.state.dynamicCasinoOrder = Array.isArray(localOrder) && localOrder.length ? localOrder : Object.keys(localCasinos || {}).sort((a, b) => a.localeCompare(b));
       return App.state.dynamicCasinos;
     }
 
     try {
-      const { db, doc, getDoc } = await App.state.ensureFirebaseServices();
-      const snapshot = await getDoc(doc(db, App.config.FIRESTORE_COLLECTION, App.config.FIRESTORE_DOCUMENT));
-      const config = snapshot.exists() ? snapshot.data() : {};
-      App.state.dynamicCasinos = config.casinos || getLocalDynamicCasinos();
-      if (!App.state.dynamicCasinos || typeof App.state.dynamicCasinos !== 'object') {
-        App.state.dynamicCasinos = getLocalDynamicCasinos();
+      const remoteConfig = await getRemoteConfig();
+      const remoteCasinos = extractRemoteCasinos(remoteConfig);
+      if (remoteCasinos && typeof remoteCasinos === 'object' && Object.keys(remoteCasinos).length) {
+        const activeIds = extractRemoteActiveCasinoIds(remoteConfig);
+        App.state.dynamicCasinos = normalizeRemoteCasinos(remoteCasinos, activeIds);
+        const remoteOrder = extractRemoteCasinoOrder(remoteConfig);
+        App.state.dynamicCasinoOrder = Array.isArray(remoteOrder) && remoteOrder.length
+          ? remoteOrder.filter((id) => App.state.dynamicCasinos[id])
+          : Object.keys(App.state.dynamicCasinos).sort((a, b) => {
+            const aNum = parseInt((a.match(/(\d+)$/) || [])[0] || a, 10);
+            const bNum = parseInt((b.match(/(\d+)$/) || [])[0] || b, 10);
+            if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+              return aNum - bNum;
+            }
+            return a.localeCompare(b);
+          });
+        setLocalDynamicCasinos(App.state.dynamicCasinos);
+        setLocalCasinoOrder(App.state.dynamicCasinoOrder);
+        return App.state.dynamicCasinos;
       }
-      if (config.casinoOrder && Array.isArray(config.casinoOrder)) {
-        App.state.dynamicCasinoOrder = config.casinoOrder;
-      } else {
-        App.state.dynamicCasinoOrder = Object.keys(App.state.dynamicCasinos || {}).sort((a, b) => {
-          const aNum = parseInt((a.match(/(\d+)$/) || [])[0] || a, 10);
-          const bNum = parseInt((b.match(/(\d+)$/) || [])[0] || b, 10);
-          if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
-            return aNum - bNum;
-          }
-          return a.localeCompare(b);
-        });
-      }
-      return App.state.dynamicCasinos;
     } catch (error) {
       console.warn('Error cargando casinos desde Firebase, usando localStorage como fallback:', error);
-      App.state.dynamicCasinos = getLocalDynamicCasinos();
-      return App.state.dynamicCasinos;
     }
+
+    App.state.dynamicCasinos = localCasinos;
+    App.state.dynamicCasinoOrder = Array.isArray(localOrder) && localOrder.length ? localOrder : Object.keys(localCasinos || {}).sort((a, b) => a.localeCompare(b));
+    return App.state.dynamicCasinos;
   }
 
   async function saveDynamicCasinos() {

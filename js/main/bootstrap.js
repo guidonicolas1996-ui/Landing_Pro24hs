@@ -11,6 +11,10 @@
     App.content?.setLandingContent?.(App.config.DEFAULT_LANDING_CONTENT, false);
     App.content?.hydrateAnalyticsSourceFromUrl?.();
 
+    if (typeof App.casinos?.applyRandomBackground === 'function') {
+      App.casinos.applyRandomBackground();
+    }
+
     if (typeof App.storage?.loadDynamicCasinos === 'function') {
       await App.storage.loadDynamicCasinos();
     }
