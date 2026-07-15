@@ -2,6 +2,36 @@
   const App = global.App || (global.App = {});
   App.events = App.events || {};
 
+  if (!window.fbEventTrackerState) {
+    window.fbEventTrackerState = {
+      leadSent: false
+    };
+  }
+
+  function handleWhatsAppClick(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    if (window.fbEventTrackerState.leadSent) {
+      console.log('FB Pixel: Evento duplicado bloqueado.');
+      return false;
+    }
+
+    window.fbEventTrackerState.leadSent = true;
+    console.log('FB Pixel: Enviando evento único de conversión...');
+
+    if (typeof fbq === 'function') {
+      fbq('track', 'Lead', {
+        content_name: 'whatsapp_click',
+        content_type: 'lead'
+      });
+    }
+
+    return true;
+  }
+
   function bindUIEvents() {
     if (typeof App.whatsapp?.bindWhatsAppButtons === 'function') {
       App.whatsapp.bindWhatsAppButtons();
@@ -25,5 +55,6 @@
     });
   }
 
+  App.events.handleWhatsAppClick = handleWhatsAppClick;
   App.events.bindUIEvents = bindUIEvents;
 })(window);

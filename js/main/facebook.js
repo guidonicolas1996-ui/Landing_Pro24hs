@@ -46,7 +46,7 @@
     }
 
     leadDispatched = true;
-    firePixelEvent('Lead', { content_name: 'whatsapp_click', content_type: 'lead' });
+    App.events?.handleWhatsAppClick?.();
     App.analytics?.trackWhatsAppClick?.();
   }
 

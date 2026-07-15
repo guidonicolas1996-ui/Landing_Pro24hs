@@ -121,21 +121,12 @@
       event.stopPropagation();
     }
 
-    if (window.App?.state?.whatsappPixelSent) {
-      return;
-    }
-
-    window.App.state.whatsappPixelSent = true;
-
-    if (typeof App.facebook?.handleWhatsAppClick === 'function') {
-      App.facebook.handleWhatsAppClick();
-    }
-
+    App.events?.handleWhatsAppClick?.(event);
     App.analytics?.registerAnalyticsWhatsappClick?.().catch(() => {});
 
     window.setTimeout(() => {
       window.location.href = buildWhatsAppUrl();
-    }, 300);
+    }, 100);
   }
 
   function bindWhatsAppButtons() {
