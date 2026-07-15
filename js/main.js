@@ -1715,12 +1715,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   // === PASO 4: Setup de event listeners ===
   const whatsappButton = document.getElementById('whatsapp-button');
   if (whatsappButton) {
-    whatsappButton.addEventListener('click', () => {
-      if (typeof requestIdleCallback !== 'undefined') {
-        requestIdleCallback(() => registerAnalyticsWhatsappClick().catch(() => {}));
-      } else {
-        registerAnalyticsWhatsappClick().catch(() => {});
+    whatsappButton.addEventListener('click', async (event) => {
+      // Prevenir comportamiento por defecto inmediato
+      event.preventDefault();
+      
+      // Ejecutar analytics y Facebook conversion en paralelo con timeout de 1.5 segundos
+      const conversionTimeout = new Promise((resolve) => {
+        setTimeout(() => resolve({ timedOut: true }), 1500);
+      });
+      
+      const conversionPromise = Promise.all([
+        registerAnalyticsWhatsappClick().catch((err) => {
+          console.warn('Error registrando click de WhatsApp en analytics:', err);
+          return null;
+        }),
+        enviarEventoFacebook().catch((err) => {
+          console.warn('Error enviando evento a Facebook:', err);
+          return null;
+        })
+      ]);
+      
+      // Esperar a que se complete la conversión o se agote el timeout
+      try {
+        await Promise.race([conversionPromise, conversionTimeout]);
+        console.log('Evento de conversión completado o timeout alcanzado');
+      } catch (error) {
+        console.error('Error inesperado en conversión:', error);
       }
+      
+      // Finalmente, redirigir al usuario a WhatsApp
       openWhatsApp();
     });
   }
@@ -1890,4 +1913,244 @@ if (typeof window !== 'undefined') {
   };
 }
 
+//Pixel Add:
+
+// ===== 1. GENERADORES Y COOKIES =====
+function generateEventId() {
+    return 'event_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+}
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+}
+
+// ===== 2. SISTEMA ANTI-BOT Y ANTI-VPN =====
+let userInteractions = {
+    mouseMovements: 0,
+    scrolls: 0,
+    keyPresses: 0,
+    touches: 0,
+    timeOnPage: 0,
+    genuineInteractions: 0
+};
+
+let botDetectionFlags = {
+    suspiciousUserAgent: false,
+    noMouseMovement: false,
+    tooFastClick: false,
+    suspiciousTimezone: false,
+    headlessBrowser: false,
+    vpnDetected: false
+};
+
+const pageLoadTime = Date.now();
+
+function detectSuspiciousUserAgent() {
+    const ua = navigator.userAgent.toLowerCase();
+    const botPatterns = [
+        'headless', 'phantom', 'selenium', 'webdriver', 'chrome-lighthouse',
+        'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider',
+        'yandexbot', 'facebookexternalhit', 'twitterbot', 'linkedinbot',
+        'whatsapp', 'telegrambot', 'crawler', 'spider', 'scraper',
+        'automation', 'puppeteer', 'playwright'
+    ];
+    return botPatterns.some(pattern => ua.includes(pattern));
+}
+
+function detectHeadlessBrowser() {
+    const checks = [
+        !window.chrome,
+        !navigator.languages || navigator.languages.length === 0,
+        !navigator.plugins || navigator.plugins.length === 0,
+        navigator.webdriver === true,
+        window.outerHeight === 0,
+        window.outerWidth === 0,
+        screen.colorDepth < 24,
+        !window.speechSynthesis,
+        typeof navigator.permissions === 'undefined'
+    ];
+    return checks.filter(Boolean).length > 3;
+}
+
+function detectSuspiciousTimezone() {
+    try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const offset = new Date().getTimezoneOffset();
+        const suspiciousTimezones = ['Europe/London', 'America/New_York', 'Europe/Amsterdam', 'Asia/Singapore', 'UTC'];
+        return suspiciousTimezones.includes(timezone) || Math.abs(offset) === 0;
+    } catch (e) {
+        return true; 
+    }
+}
+
+async function detectVPNProxy() {
+    return new Promise((resolve) => {
+        const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
+        const ips = [];
+        
+        pc.onicecandidate = (e) => {
+            if (!e.candidate) {
+                pc.close();
+                const privateIpPattern = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|127\.|169\.254\.)/;
+                const hasPrivateIp = ips.some(ip => privateIpPattern.test(ip));
+                const hasMultiplePublicIps = ips.filter(ip => !privateIpPattern.test(ip)).length > 1;
+                resolve(hasMultiplePublicIps && !hasPrivateIp);
+                return;
+            }
+            const candidate = e.candidate.candidate;
+            const match = candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+            if (match && !ips.includes(match[1])) {
+                ips.push(match[1]);
+            }
+        };
+        
+        pc.createDataChannel('test');
+        pc.createOffer().then(offer => pc.setLocalDescription(offer));
+        setTimeout(() => { pc.close(); resolve(false); }, 3000);
+    });
+}
+
+function trackUserBehavior() {
+    document.addEventListener('mousemove', () => {
+        userInteractions.mouseMovements++;
+        userInteractions.genuineInteractions++;
+    }, { passive: true });
+    
+    document.addEventListener('scroll', () => {
+        userInteractions.scrolls++;
+        userInteractions.genuineInteractions++;
+    }, { passive: true });
+    
+    document.addEventListener('keydown', () => {
+        userInteractions.keyPresses++;
+        userInteractions.genuineInteractions++;
+    }, { passive: true });
+    
+    document.addEventListener('touchstart', () => {
+        userInteractions.touches++;
+        userInteractions.genuineInteractions++;
+    }, { passive: true });
+    
+    setInterval(() => {
+        userInteractions.timeOnPage = Math.floor((Date.now() - pageLoadTime) / 1000);
+    }, 1000);
+}
+
+function calculateTrustScore() {
+    let score = 100;
+    Object.values(botDetectionFlags).forEach(flag => {
+        if (flag) score -= 15;
+    });
+    if (userInteractions.genuineInteractions < 3) score -= 25;
+    if (userInteractions.mouseMovements < 5) score -= 20;
+    if (userInteractions.timeOnPage < 3) score -= 15;
+    
+    if (userInteractions.mouseMovements > 20) score += 5;
+    if (userInteractions.scrolls > 5) score += 5;
+    if (userInteractions.timeOnPage > 10) score += 10;
+    
+    return Math.max(0, Math.min(100, score));
+}
+
+async function initBotDetection() {
+    botDetectionFlags.suspiciousUserAgent = detectSuspiciousUserAgent();
+    botDetectionFlags.headlessBrowser = detectHeadlessBrowser();
+    botDetectionFlags.suspiciousTimezone = detectSuspiciousTimezone();
+    botDetectionFlags.vpnDetected = await detectVPNProxy();
+    trackUserBehavior();
+    console.log('🔒 Sistema anti-bot inicializado:', botDetectionFlags);
+}
+
+function validateClickSecurity(clickTime) {
+    const timeSinceLoad = clickTime - pageLoadTime;
+    if (timeSinceLoad < 1000) {
+        botDetectionFlags.tooFastClick = true;
+        return false;
+    }
+    if (userInteractions.genuineInteractions < 1 && timeSinceLoad < 3000) {
+        botDetectionFlags.noMouseMovement = true;
+        return false;
+    }
+    return calculateTrustScore() >= 40;
+}
+
+// ===== 3. ENVIAR EVENTO A FACEBOOK Y API =====
+function enviarEventoFacebook() {
+    try {
+        const clickTime = Date.now();
+        if (!validateClickSecurity(clickTime)) {
+            console.warn('🚫 Click rechazado por sistema anti-bot');
+            return Promise.resolve(false);
+        }
+        
+        const eventId = generateEventId();
+        
+        // Disparar Pixel del navegador (Deduplicado usando eventID)
+        fbq('track', 'CompleteRegistration', { registration_id: eventId }, { eventID: eventId });
+        
+        const fbp = getCookie('_fbp') || '';
+        const fbc = getCookie('_fbc') || getCookie('fbclid') || new URL(window.location.href).searchParams.get('fbclid') || '';
+        
+        // IMPORTANTE: Asegúrate de que este Access Token y tu Pixel ID correspondan a tus cuentas.
+        const ACCESS_TOKEN = 'EAAR7uPgFvj8BO2WoA8r9ZCZCtL70WDOs7OaLNQAuxNFCSewnN52LbA43EGBhF0vkAUSHy0A0WGZAgIB8gD6ZAZCEQjAJmZBBZA17DK5tadY0Wf8GnhZAS2maQZAC35qgvyzTBtsbZBFUYFen8Wfphy6gsOQMG7jDOMvV9x25oZBlVi1YyJmnp7YAfamrndzvktgPgZDZD';
+        
+        const eventData = {
+            fbp: fbp,
+            fbc: fbc,
+            event_id: eventId,
+            event_name: "CompleteRegistration",
+            event_source_url: window.location.href,
+            user_agent: navigator.userAgent,
+            event_time: Math.floor(Date.now() / 1000),
+            registration_id: eventId,
+            value: 1.00,
+            currency: 'USD',
+            access_token: ACCESS_TOKEN,
+            custom_data: {
+                trust_score: calculateTrustScore(),
+                time_on_page: userInteractions.timeOnPage,
+                interactions: userInteractions.genuineInteractions,
+                mouse_movements: userInteractions.mouseMovements,
+                scroll_count: userInteractions.scrolls,
+                click_delay: clickTime - pageLoadTime,
+                screen_resolution: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language
+            }
+        };
+
+        // LLAMADA A BACKEND (API de Conversiones)
+        return fetch('/api/facebook-conversion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Callback al backend general
+            return fetch('/api/sendEvent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventName: 'Contactar', eventData: eventData })
+            });
+        })
+        .then(res => res.json())
+        .then(() => true)
+        .catch(err => {
+            console.error('❌ Error en el servidor de conversiones:', err);
+            return false;
+        });
+    } catch (e) {
+        console.error('❌ Error general de tracking:', e);
+        return Promise.resolve(false);
+    }
+}
+
+// Inicializar el analizador al cargar
+initBotDetection();
+
 export { getLandingContent, setLandingContent, getStoredLandingContent, setStoredLandingContent, saveRemoteConfig, addCasino, removeCasino, updateCasinoActive, loadDynamicCasinos, setActiveCasinos, getActiveCasinos };
+
