@@ -1488,7 +1488,12 @@ async function saveRemoteConfig(config) {
 // End Firebase
 
 function openWhatsApp() {
-  window.open(landingContent.whatsappUrl, '_blank', 'noopener,noreferrer');
+  fbq('track', 'CompleteRegistration', { content_name: 'WhatsApp' });
+  setTimeout(() => {
+    if (landingContent.whatsappUrl && landingContent.whatsappUrl.trim()) {
+      window.open(landingContent.whatsappUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, 200);
 }
 
 function setViewportHeight() {
