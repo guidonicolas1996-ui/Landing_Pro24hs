@@ -38,8 +38,8 @@
   }
 
   function handleWhatsAppClick() {
-    firePixelEvent('WhatsApp_Click', { content_name: 'whatsapp_click', content_type: 'lead' });
-    firePixelEvent('Lead', { content_name: 'whatsapp_click', content_type: 'lead' });
+    firePixelEvent('WhatsApp_Click', { content_name: 'WhatsApp_Click', content_type: 'lead' });
+    firePixelEvent('Lead', { content_name: 'WhatsApp_Click', content_type: 'lead' });
     App.analytics?.trackWhatsAppClick?.();
   }
 

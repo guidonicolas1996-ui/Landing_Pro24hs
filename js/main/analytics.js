@@ -97,8 +97,8 @@
   }
 
   function trackWhatsAppClick() {
-    trackEvent('whatsapp_click', { event_category: 'engagement' });
-    App.analytics.trackConversion({ content_name: 'whatsapp_click' });
+    trackEvent('WhatsApp_Click', { event_category: 'engagement' });
+    App.analytics.trackConversion({ content_name: 'WhatsApp_Click' });
   }
 
   App.analytics.trackEvent = trackEvent;
