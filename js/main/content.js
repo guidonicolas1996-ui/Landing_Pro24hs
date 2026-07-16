@@ -7,6 +7,14 @@
     const content = App.state.landingContent;
 
     if (elements.accessBadge) elements.accessBadge.textContent = content.accessBadge;
+    if (elements.heroBonusLinePercent || elements.heroBonusLineText) {
+      const bonusLineValue = content.heroBonusLine || '';
+      const bonusLineParts = String(bonusLineValue).trim().split(/\s+(?=.+)/);
+      const percentValue = bonusLineParts[0] || '100%';
+      const textValue = bonusLineParts.slice(1).join(' ') || 'DE BONO';
+      if (elements.heroBonusLinePercent) elements.heroBonusLinePercent.textContent = percentValue;
+      if (elements.heroBonusLineText) elements.heroBonusLineText.textContent = textValue;
+    }
     if (elements.heroTitle) elements.heroTitle.innerHTML = content.heroTitle;
     if (elements.heroCopy) elements.heroCopy.textContent = content.heroCopy;
     if (elements.promoLabel) elements.promoLabel.textContent = content.promoLabel;

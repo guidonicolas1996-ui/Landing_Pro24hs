@@ -17,6 +17,8 @@
   App.dom.cache = function cache() {
     App.dom.elements = {
       accessBadge: App.dom.getElement('access-badge'),
+      heroBonusLinePercent: App.dom.getElement('hero-bonus-line-percent'),
+      heroBonusLineText: App.dom.getElement('hero-bonus-line-text'),
       heroTitle: App.dom.getElement('hero-title'),
       heroCopy: App.dom.getElement('hero-copy'),
       ctaLabel: App.dom.getElement('cta-label'),

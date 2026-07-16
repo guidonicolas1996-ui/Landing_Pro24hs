@@ -3,6 +3,7 @@
   App.config = App.config || {};
 
   const DEFAULT_LANDING_CONTENT = {
+    heroBonusLine: '100% DE BONO',
     accessBadge: 'ACCESO VIP',
     heroTitle: 'BIENVENIDO A TU <span class="gradient-text">CASINO DE CONFIANZA</span>',
     heroCopy: 'Escribinos apretando el botón de abajo',
