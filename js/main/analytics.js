@@ -51,38 +51,69 @@
 
   async function registerAnalyticsVisit() {
     try {
-      const { db, doc, setDoc } = await App.state.ensureFirebaseServices();
+      const { db, doc, getDoc, setDoc } = await App.state.ensureFirebaseServices();
       const visitorId = await getPersistentVisitorId();
       const analyticsRef = doc(db, App.config.ANALYTICS_COLLECTION, App.config.ANALYTICS_DOCUMENT);
-      const now = new Date().toISOString();
-      const payload = {
-        visitedAt: now,
-        source: App.state.analyticsSource || 'primary',
+      const now = new Date();
+      const source = App.state.analyticsSource || 'primary';
+      console.log('[analytics] visit start', { visitorId, source, path: window.location.pathname, search: window.location.search });
+
+      const currentSnapshot = await getDoc(analyticsRef);
+      const currentDocument = currentSnapshot.exists() ? currentSnapshot.data() : null;
+      const { createEmptyAnalyticsDocument, buildAnalyticsDocumentUpdate } = await import('./analytics-logic.mjs');
+      const nextState = buildAnalyticsDocumentUpdate(currentDocument || createEmptyAnalyticsDocument(), {
         visitorId,
-        userAgent: navigator.userAgent,
-        path: window.location.pathname,
-        search: window.location.search
-      };
-      await setDoc(analyticsRef, { [visitorId]: payload }, { merge: true });
+        now,
+        source,
+        action: 'visit'
+      });
+
+      console.log('[analytics] visit update payload', {
+        visitorId,
+        source,
+        totals: nextState.totals,
+        visitorRecord: nextState.visitors[visitorId],
+        bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
+      });
+
+      await setDoc(analyticsRef, nextState, { merge: true });
+      console.log('[analytics] visit saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
-      console.warn('No se pudo registrar la visita de analytics:', error);
+      console.error('[analytics] failed visit registration', error);
     }
   }
 
   async function registerAnalyticsWhatsappClick() {
     try {
-      const { db, doc, setDoc } = await App.state.ensureFirebaseServices();
+      const { db, doc, getDoc, setDoc } = await App.state.ensureFirebaseServices();
       const visitorId = await getPersistentVisitorId();
       const analyticsRef = doc(db, App.config.ANALYTICS_COLLECTION, App.config.ANALYTICS_DOCUMENT);
-      const now = new Date().toISOString();
-      await setDoc(analyticsRef, {
-        [visitorId]: {
-          lastWhatsappClickAt: now,
-          source: App.state.analyticsSource || 'primary'
-        }
-      }, { merge: true });
+      const now = new Date();
+      const source = App.state.analyticsSource || 'primary';
+      console.log('[analytics] whatsapp click start', { visitorId, source, path: window.location.pathname, search: window.location.search });
+
+      const currentSnapshot = await getDoc(analyticsRef);
+      const currentDocument = currentSnapshot.exists() ? currentSnapshot.data() : null;
+      const { createEmptyAnalyticsDocument, buildAnalyticsDocumentUpdate } = await import('./analytics-logic.mjs');
+      const nextState = buildAnalyticsDocumentUpdate(currentDocument || createEmptyAnalyticsDocument(), {
+        visitorId,
+        now,
+        source,
+        action: 'whatsapp_click'
+      });
+
+      console.log('[analytics] whatsapp click update payload', {
+        visitorId,
+        source,
+        totals: nextState.totals,
+        visitorRecord: nextState.visitors[visitorId],
+        bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
+      });
+
+      await setDoc(analyticsRef, nextState, { merge: true });
+      console.log('[analytics] whatsapp click saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
-      console.warn('No se pudo registrar el click de WhatsApp:', error);
+      console.error('[analytics] failed whatsapp click registration', error);
     }
   }
 
