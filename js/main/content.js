@@ -12,8 +12,9 @@
       const bonusLineParts = String(bonusLineValue).trim().split(/\s+(?=.+)/);
       const percentValue = bonusLineParts[0] || '100%';
       const textValue = bonusLineParts.slice(1).join(' ') || 'DE BONO';
+      const displayedText = '\u00A0' + textValue.trimStart();
       if (elements.heroBonusLinePercent) elements.heroBonusLinePercent.textContent = percentValue;
-      if (elements.heroBonusLineText) elements.heroBonusLineText.textContent = textValue;
+      if (elements.heroBonusLineText) elements.heroBonusLineText.textContent = displayedText;
     }
     if (elements.heroTitle) elements.heroTitle.innerHTML = content.heroTitle;
     if (elements.heroCopy) elements.heroCopy.textContent = content.heroCopy;
