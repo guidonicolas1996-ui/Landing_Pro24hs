@@ -1088,6 +1088,7 @@
   -webkit-text-fill-color: transparent;
   -webkit-text-stroke: 0.025em rgba(242, 200, 91, 0.85);
   paint-order: stroke fill;
+  transition: background 1s ease, color 1s ease;
 }
 
 .hero-bonus-line__text {
@@ -1113,6 +1114,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  transition: background 1s ease, color 1s ease;
 }
 
 .hero-card p {

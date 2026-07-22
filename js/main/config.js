@@ -79,6 +79,74 @@
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
   }
 
+  function normalizeColorToRgb(color) {
+    if (!color || typeof color !== 'string') {
+      return null;
+    }
+
+    const trimmed = color.trim();
+    if (trimmed.startsWith('#')) {
+      return hexToRgb(trimmed);
+    }
+
+    const rgbaMatch = /^rgba?\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})(?:\s*,\s*[0-9\.]+)?\s*\)$/i.exec(trimmed);
+    if (rgbaMatch) {
+      return {
+        r: Number(rgbaMatch[1]),
+        g: Number(rgbaMatch[2]),
+        b: Number(rgbaMatch[3])
+      };
+    }
+
+    return null;
+  }
+
+  function interpolateRgb(from, to, t) {
+    return {
+      r: Math.round(from.r + (to.r - from.r) * t),
+      g: Math.round(from.g + (to.g - from.g) * t),
+      b: Math.round(from.b + (to.b - from.b) * t)
+    };
+  }
+
+  App.animateThemeColors = function animateThemeColors(targetColors, duration = 1000) {
+    const root = document.documentElement;
+    const computed = getComputedStyle(root);
+    const animationKeys = ['--theme-primary', '--theme-primary-strong', '--theme-accent'];
+    const startColors = animationKeys.map((name) => normalizeColorToRgb(computed.getPropertyValue(name).trim()));
+    const endColors = animationKeys.map((name) => normalizeColorToRgb(targetColors[name] || computed.getPropertyValue(name).trim()));
+
+    if (App.themeColorAnimationFrame) {
+      cancelAnimationFrame(App.themeColorAnimationFrame);
+      App.themeColorAnimationFrame = null;
+    }
+
+    const startTime = performance.now();
+
+    const step = (now) => {
+      const elapsed = Math.min(duration, Math.max(0, now - startTime));
+      const progress = duration > 0 ? elapsed / duration : 1;
+
+      animationKeys.forEach((name, index) => {
+        const start = startColors[index];
+        const end = endColors[index];
+        if (!start || !end) {
+          return;
+        }
+        const current = interpolateRgb(start, end, progress);
+        root.style.setProperty(name, rgbToHex(current.r, current.g, current.b));
+      });
+
+      if (progress < 1) {
+        App.themeColorAnimationFrame = requestAnimationFrame(step);
+      } else {
+        App.themeColorAnimationFrame = null;
+      }
+    };
+
+    App.themeColorAnimationFrame = requestAnimationFrame(step);
+  };
+
   App.generateColorVariations = function generateColorVariations(baseColor) {
     const rgb = hexToRgb(baseColor);
     if (!rgb) {

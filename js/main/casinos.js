@@ -470,9 +470,20 @@
     document.documentElement.style.setProperty('--primary-color', colorVars.medium);
     document.documentElement.style.setProperty('--primary-light', colorVars.light);
     document.documentElement.style.setProperty('--primary-dark', colorVars.dark);
-    document.documentElement.style.setProperty('--theme-primary', colorVars.medium);
-    document.documentElement.style.setProperty('--theme-primary-strong', colorVars.dark);
-    document.documentElement.style.setProperty('--theme-accent', colorVars.light);
+
+    const themeVars = {
+      '--theme-primary': colorVars.medium,
+      '--theme-primary-strong': colorVars.dark,
+      '--theme-accent': colorVars.light
+    };
+
+    if (animate && typeof App.animateThemeColors === 'function') {
+      App.animateThemeColors(themeVars, 1000);
+    } else {
+      Object.entries(themeVars).forEach(([name, value]) => {
+        document.documentElement.style.setProperty(name, value);
+      });
+    }
 
     refreshThemeRotation();
   }

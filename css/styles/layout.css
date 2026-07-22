@@ -94,6 +94,7 @@ Page layout
   -webkit-text-stroke: 2px var(--theme-stroke-color);
   text-stroke: 2px var(--theme-stroke-color);
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.12), 0 10px 35px rgba(125, 108, 255, 0.24);
+  transition: background 1s ease, color 1s ease;
 }
 
 .highlight-copy__sub {
