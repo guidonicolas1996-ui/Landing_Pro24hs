@@ -173,22 +173,9 @@ Page layout
   background-position: 100% 0;
 }
 
-@keyframes spin-slow {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
-@keyframes floaty {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
 
-  50% {
-    transform: translateY(-8px);
-  }
-}
+
 
 .hero-header__mascot,
 #active-logo,
@@ -232,3 +219,20 @@ Page layout
   --enter-duration: 1600ms;
 }
 
+/* ======================================================================== */
+/* Keyframes */
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}

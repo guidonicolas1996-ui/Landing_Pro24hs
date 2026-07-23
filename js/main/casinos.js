@@ -388,7 +388,7 @@
         cleanup();
         assignThemeToSlots(nextSlotThemes);
         setFinalStates();
-      }, 2500);
+      }, 3600);
     }
   }
 
