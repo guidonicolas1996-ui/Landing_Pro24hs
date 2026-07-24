@@ -97,13 +97,13 @@
     return {};
   }
 
-  async function loadWhatsAppUrlUrgent() {
+  async function loadWhatsAppUrlUrgent(remoteConfig = null) {
     startButtonProgress();
     try {
-      const remoteConfig = await App.storage?.getRemoteConfig?.();
-      const remoteLandingSource = resolveRemoteLandingContent(remoteConfig);
+      const resolvedRemoteConfig = remoteConfig ?? await App.storage?.getRemoteConfig?.();
+      const remoteLandingSource = resolveRemoteLandingContent(resolvedRemoteConfig);
       const activeLanding = App.content?.getActiveLandingConfig?.(remoteLandingSource);
-      const remoteWhatsAppUrl = activeLanding?.whatsappUrl || remoteConfig?.whatsappUrl || remoteLandingSource?.whatsappUrl;
+      const remoteWhatsAppUrl = activeLanding?.whatsappUrl || resolvedRemoteConfig?.whatsappUrl || remoteLandingSource?.whatsappUrl;
       if (remoteWhatsAppUrl) {
         App.state.landingContent.whatsappUrl = remoteWhatsAppUrl;
         App.content?.renderContent?.();
@@ -145,10 +145,18 @@
     });
   }
 
-  function initializeButton() {
-    syncButtonUI();
-    bindWhatsAppButtons();
-    return loadWhatsAppUrlUrgent();
+  function initializeButton(remoteConfig = null) {
+    if (App.whatsapp.initializationPromise) {
+      return App.whatsapp.initializationPromise;
+    }
+
+    App.whatsapp.initializationPromise = (async () => {
+      syncButtonUI();
+      bindWhatsAppButtons();
+      await loadWhatsAppUrlUrgent(remoteConfig);
+    })();
+
+    return App.whatsapp.initializationPromise;
   }
 
   App.whatsapp.buildWhatsAppUrl = buildWhatsAppUrl;

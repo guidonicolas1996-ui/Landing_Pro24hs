@@ -368,17 +368,27 @@
       return App.state.remoteConfigCache;
     }
 
-    try {
-      const { db, doc, getDoc } = await App.state.ensureFirebaseServices();
-      const snapshot = await getDoc(doc(db, App.config.FIRESTORE_COLLECTION, App.config.FIRESTORE_DOCUMENT));
-      const data = snapshot.exists() ? snapshot.data() : null;
-      App.state.remoteConfigCache = data;
-      App.state.remoteConfigCacheTime = Date.now();
-      return data;
-    } catch (error) {
-      console.error('Error leyendo configuración remota de Firebase:', error);
-      return App.state.remoteConfigCache;
+    if (App.state.remoteConfigRequestPromise) {
+      return App.state.remoteConfigRequestPromise;
     }
+
+    App.state.remoteConfigRequestPromise = (async () => {
+      try {
+        const { db, doc, getDoc } = await App.state.ensureFirebaseServices();
+        const snapshot = await getDoc(doc(db, App.config.FIRESTORE_COLLECTION, App.config.FIRESTORE_DOCUMENT));
+        const data = snapshot.exists() ? snapshot.data() : null;
+        App.state.remoteConfigCache = data;
+        App.state.remoteConfigCacheTime = Date.now();
+        return data;
+      } catch (error) {
+        console.error('Error leyendo configuración remota de Firebase:', error);
+        return App.state.remoteConfigCache;
+      } finally {
+        App.state.remoteConfigRequestPromise = null;
+      }
+    })();
+
+    return App.state.remoteConfigRequestPromise;
   }
 
   async function saveRemoteConfig(config) {

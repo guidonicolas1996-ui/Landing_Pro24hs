@@ -7,6 +7,29 @@
       return;
     }
 
+    const remoteConfigPromise = typeof App.storage?.getRemoteConfig === 'function'
+      ? (async () => {
+          try {
+            return await App.storage.getRemoteConfig();
+          } catch (error) {
+            console.warn('No se pudo hidratar la configuración remota:', error);
+            return null;
+          }
+        })()
+      : Promise.resolve(null);
+
+    const whatsappInitPromise = remoteConfigPromise.then(async (remoteConfig) => {
+      if (remoteConfig?.landingContent) {
+        App.content?.setLandingContent?.(remoteConfig.landingContent, false);
+      }
+
+      if (typeof App.whatsapp?.initializeButton === 'function') {
+        await App.whatsapp.initializeButton(remoteConfig);
+      }
+    }).catch((error) => {
+      console.warn('No se pudo inicializar WhatsApp con la configuración remota:', error);
+    });
+
     App.dom?.cache?.();
     App.content?.setLandingContent?.(App.config.DEFAULT_LANDING_CONTENT, false);
     App.content?.hydrateAnalyticsSourceFromUrl?.();
@@ -32,22 +55,11 @@
       App.facebook.initPixel();
     }
 
-    try {
-      const remoteConfig = await App.storage?.getRemoteConfig?.();
-      if (remoteConfig?.landingContent) {
-        App.content?.setLandingContent?.(remoteConfig.landingContent, false);
-      }
-    } catch (error) {
-      console.warn('No se pudo hidratar la configuración remota:', error);
-    }
-
-    if (typeof App.whatsapp?.initializeButton === 'function') {
-      await App.whatsapp.initializeButton();
-    }
-
     if (typeof App.analytics?.registerAnalyticsVisit === 'function' && !window.location.pathname.includes('settings') && !window.location.pathname.includes('analytics')) {
       App.analytics.registerAnalyticsVisit().catch(() => {});
     }
+
+    await whatsappInitPromise;
   }
 
   App.bootstrap.init = init;
