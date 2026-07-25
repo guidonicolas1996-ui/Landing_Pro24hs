@@ -23,12 +23,7 @@
     './img/background2.avif',
     './img/background3.avif',
     './img/background4.avif',
-    './img/background5.avif',
-    './img/background6.avif',
-    './img/background7.avif',
-    './img/background8.avif',
-    './img/background9.avif',
-    './img/background10.avif'
+    './img/background5.avif'
   ];
   const LOCAL_STORAGE_CASINOS_KEY = 'dynamicCasinos';
   const USE_REMOTE_STORAGE = global.window !== undefined && global.window.location.protocol !== 'file:';
