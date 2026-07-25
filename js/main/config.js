@@ -14,21 +14,21 @@
     helperText: 'CARGAS Y RETIROS AL INSTANTE',
     footerText1: 'Bono no extraíble, válido solo para slots. Mínimo de carga: $2.000.',
     footerText2: 'Advertencia de juego responsable (+18) - © 2026',
-    whatsappUrl: ''
+    whatsappUrl: 'https://www.linkify.com.ar/api/soporte?id=1ekhu3'
   };
 
   const MAX_CASINOS = 5;
   const BACKGROUND_IMAGES = [
-    './img/background1.png',
-    './img/background2.png',
-    './img/background3.png',
-    './img/background4.png',
-    './img/background5.png',
-    './img/background6.png',
-    './img/background7.png',
-    './img/background8.png',
-    './img/background9.png',
-    './img/background10.png'
+    './img/background1.avif',
+    './img/background2.avif',
+    './img/background3.avif',
+    './img/background4.avif',
+    './img/background5.avif',
+    './img/background6.avif',
+    './img/background7.avif',
+    './img/background8.avif',
+    './img/background9.avif',
+    './img/background10.avif'
   ];
   const LOCAL_STORAGE_CASINOS_KEY = 'dynamicCasinos';
   const USE_REMOTE_STORAGE = global.window !== undefined && global.window.location.protocol !== 'file:';

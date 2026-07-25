@@ -98,7 +98,11 @@
   }
 
   async function loadWhatsAppUrlUrgent(remoteConfig = null) {
-    startButtonProgress();
+    const hasLocalWhatsAppUrl = !!App.state.landingContent?.whatsappUrl?.trim();
+    if (!hasLocalWhatsAppUrl) {
+      startButtonProgress();
+    }
+
     try {
       const resolvedRemoteConfig = remoteConfig ?? await App.storage?.getRemoteConfig?.();
       const remoteLandingSource = resolveRemoteLandingContent(resolvedRemoteConfig);
@@ -111,7 +115,24 @@
     } catch (error) {
       console.warn('WhatsApp URL no se cargó a tiempo:', error);
     } finally {
-      completeButtonProgress();
+      if (!hasLocalWhatsAppUrl || !App.state.whatsappButtonReady) {
+        if (hasLocalWhatsAppUrl) {
+          if (App.state.whatsappButtonProgressTimer) {
+            clearInterval(App.state.whatsappButtonProgressTimer);
+            App.state.whatsappButtonProgressTimer = null;
+          }
+          if (App.state.whatsappButtonCompleteTimeout) {
+            clearTimeout(App.state.whatsappButtonCompleteTimeout);
+            App.state.whatsappButtonCompleteTimeout = null;
+          }
+          App.state.whatsappButtonProgressActive = false;
+          App.state.whatsappButtonReady = true;
+          updateButtonProgress(100);
+          syncButtonUI();
+        } else {
+          completeButtonProgress();
+        }
+      }
     }
   }
 

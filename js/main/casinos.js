@@ -393,7 +393,7 @@
   }
 
   function applyRandomBackground() {
-    const fallback = './img/background.png';
+    const fallback = './img/background.avif';
     const selectedBackground = App.config.BACKGROUND_IMAGES[Math.floor(Math.random() * App.config.BACKGROUND_IMAGES.length)] || fallback;
     const resolvedBackground = new URL(selectedBackground, window.location.href).href;
     const currentBackground = getComputedStyle(document.documentElement).getPropertyValue('--background-image').trim();
