@@ -1,0 +1,7 @@
+{
+  "name": "landing-css-production",
+  "private": true,
+  "scripts": {
+    "build:css": "node scripts/build-css.js"
+  }
+}
