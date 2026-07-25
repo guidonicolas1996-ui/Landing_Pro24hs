@@ -2,22 +2,26 @@
   const App = global.App || (global.App = {});
   App.whatsapp = App.whatsapp || {};
 
+  function getLocalWhatsAppUrl() {
+    return App.state.landingContent?.whatsappUrl?.trim() || '';
+  }
+
   function syncButtonUI() {
     const button = document.getElementById('whatsapp-button');
     const fill = button?.querySelector('.whatsapp-button__progress-fill');
     if (!button || !fill) return;
 
     fill.style.width = `${App.state.whatsappButtonProgressValue || 0}%`;
+    const hasLocalWhatsAppUrl = !!getLocalWhatsAppUrl();
+    const allowClick = App.state.whatsappButtonReady || hasLocalWhatsAppUrl;
 
-    if (App.state.whatsappButtonReady) {
-      button.disabled = false;
-      button.classList.remove('whatsapp-button--loading');
-      button.classList.add('whatsapp-button--ready');
+    button.disabled = !allowClick;
+    button.classList.toggle('whatsapp-button--loading', !App.state.whatsappButtonReady);
+    button.classList.toggle('whatsapp-button--ready', App.state.whatsappButtonReady);
+
+    if (allowClick) {
       button.removeAttribute('aria-disabled');
     } else {
-      button.disabled = true;
-      button.classList.add('whatsapp-button--loading');
-      button.classList.remove('whatsapp-button--ready');
       button.setAttribute('aria-disabled', 'true');
     }
   }
@@ -72,6 +76,11 @@
   }
 
   function buildWhatsAppUrl() {
+    const localUrl = getLocalWhatsAppUrl();
+    if (localUrl) {
+      return localUrl;
+    }
+
     const remoteUrl = App.state.landingContent?.whatsappUrl?.trim();
     if (remoteUrl) {
       return remoteUrl;
@@ -102,8 +111,11 @@
   }
 
   async function loadWhatsAppUrlUrgent(remoteConfig = null) {
-    const hasLocalWhatsAppUrl = !!App.state.landingContent?.whatsappUrl?.trim();
-    if (!hasLocalWhatsAppUrl) {
+    const hasLocalWhatsAppUrl = !!getLocalWhatsAppUrl();
+    if (hasLocalWhatsAppUrl) {
+      updateButtonProgress(16);
+      syncButtonUI();
+    } else {
       startButtonProgress();
     }
 
@@ -114,28 +126,14 @@
       const remoteWhatsAppUrl = activeLanding?.whatsappUrl || resolvedRemoteConfig?.whatsappUrl || remoteLandingSource?.whatsappUrl;
       if (remoteWhatsAppUrl) {
         App.state.landingContent.whatsappUrl = remoteWhatsAppUrl;
+        App.state.whatsappButtonReady = true;
         App.content?.renderContent?.();
+        completeButtonProgress();
       }
     } catch (error) {
       console.warn('WhatsApp URL no se cargó a tiempo:', error);
-    } finally {
-      if (!hasLocalWhatsAppUrl || !App.state.whatsappButtonReady) {
-        if (hasLocalWhatsAppUrl) {
-          if (App.state.whatsappButtonProgressTimer) {
-            clearTimeout(App.state.whatsappButtonProgressTimer);
-            App.state.whatsappButtonProgressTimer = null;
-          }
-          if (App.state.whatsappButtonCompleteTimeout) {
-            clearTimeout(App.state.whatsappButtonCompleteTimeout);
-            App.state.whatsappButtonCompleteTimeout = null;
-          }
-          App.state.whatsappButtonProgressActive = false;
-          App.state.whatsappButtonReady = true;
-          updateButtonProgress(100);
-          syncButtonUI();
-        } else {
-          completeButtonProgress();
-        }
+      if (!hasLocalWhatsAppUrl) {
+        completeButtonProgress();
       }
     }
   }
@@ -149,9 +147,8 @@
     App.events?.handleWhatsAppClick?.(event);
     App.analytics?.registerAnalyticsWhatsappClick?.().catch(() => {});
 
-    window.setTimeout(() => {
-      window.location.href = buildWhatsAppUrl();
-    }, 100);
+    const targetUrl = buildWhatsAppUrl();
+    window.location.href = targetUrl;
   }
 
   function bindWhatsAppButtons() {
