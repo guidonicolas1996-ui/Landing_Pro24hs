@@ -39,20 +39,24 @@
     updateButtonProgress(16);
 
     if (App.state.whatsappButtonProgressTimer) {
-      clearInterval(App.state.whatsappButtonProgressTimer);
+      clearTimeout(App.state.whatsappButtonProgressTimer);
     }
 
-    App.state.whatsappButtonProgressTimer = window.setInterval(() => {
-      if (App.state.whatsappButtonProgressValue >= 94) {
+    const tickProgress = () => {
+      if (!App.state.whatsappButtonProgressActive || App.state.whatsappButtonProgressValue >= 94) {
         return;
       }
+
       updateButtonProgress(App.state.whatsappButtonProgressValue + Math.random() * 4 + 2);
-    }, 100);
+      App.state.whatsappButtonProgressTimer = window.setTimeout(tickProgress, 100);
+    };
+
+    App.state.whatsappButtonProgressTimer = window.setTimeout(tickProgress, 100);
   }
 
   function completeButtonProgress() {
     if (App.state.whatsappButtonProgressTimer) {
-      clearInterval(App.state.whatsappButtonProgressTimer);
+      clearTimeout(App.state.whatsappButtonProgressTimer);
       App.state.whatsappButtonProgressTimer = null;
     }
 
@@ -118,7 +122,7 @@
       if (!hasLocalWhatsAppUrl || !App.state.whatsappButtonReady) {
         if (hasLocalWhatsAppUrl) {
           if (App.state.whatsappButtonProgressTimer) {
-            clearInterval(App.state.whatsappButtonProgressTimer);
+            clearTimeout(App.state.whatsappButtonProgressTimer);
             App.state.whatsappButtonProgressTimer = null;
           }
           if (App.state.whatsappButtonCompleteTimeout) {

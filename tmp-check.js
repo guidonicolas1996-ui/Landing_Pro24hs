@@ -5,7 +5,7 @@ const path = require('path');
 const cwd = process.cwd();
 const context = {
   window: {
-    location: { search: '', pathname: '/', href: 'http://localhost/' },
+    location: { search: '', pathname: '/', href: 'http://localhost/', protocol: 'http:' },
     addEventListener() {},
     dispatchEvent() {},
     setTimeout,
@@ -42,6 +42,7 @@ context.window.globalThis = context;
 context.window.document = context.document;
 context.window.localStorage = context.localStorage;
 context.window.console = console;
+context.window.App = context.App;
 context.window.URLSearchParams = URLSearchParams;
 context.window.performance = context.performance;
 context.window.setTimeout = setTimeout;

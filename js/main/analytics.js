@@ -2,20 +2,19 @@
   const App = global.App || (global.App = {});
   App.analytics = App.analytics || {};
 
-  async function getIpAddress() {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip || 'unknown';
-    } catch (error) {
-      return 'unknown';
-    }
-  }
+  async function getVisitorFingerprint(seed) {
+    const text = `${seed}|${navigator.userAgent}|${navigator.platform}|${window.screen.width}x${window.screen.height}|${navigator.language}`;
 
-  async function getVisitorFingerprint(ip) {
-    const text = `${ip}|${navigator.userAgent}|${navigator.platform}|${window.screen.width}x${window.screen.height}|${navigator.language}`;
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+      try {
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+      } catch (error) {
+        return text.replace(/[^a-z0-9]/gi, '').slice(0, 64);
+      }
+    }
+
+    return text.replace(/[^a-z0-9]/gi, '').slice(0, 64);
   }
 
   async function getPersistentVisitorId() {
@@ -24,8 +23,9 @@
       if (visitorId) {
         return visitorId;
       }
-      const ip = await getIpAddress();
-      visitorId = await getVisitorFingerprint(ip);
+
+      const seed = `${Date.now()}|${window.location.pathname || '/'}|${navigator.userAgent}`;
+      visitorId = await getVisitorFingerprint(seed);
       localStorage.setItem('visitorId', visitorId);
       return visitorId;
     } catch (error) {

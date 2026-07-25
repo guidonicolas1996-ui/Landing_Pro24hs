@@ -20,7 +20,9 @@ function startApp() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startApp, { once: true });
+  document.addEventListener('DOMContentLoaded', () => {
+    window.requestAnimationFrame(() => startApp());
+  }, { once: true });
 } else {
-  startApp();
+  window.requestAnimationFrame(() => startApp());
 }

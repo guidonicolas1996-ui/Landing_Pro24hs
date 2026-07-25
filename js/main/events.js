@@ -37,22 +37,29 @@
       App.whatsapp.bindWhatsAppButtons();
     }
 
-    if (typeof App.antibot?.observeInteractions === 'function') {
-      App.antibot.observeInteractions();
-    }
+    const scheduleNonCriticalWork = () => {
+      if (typeof App.antibot?.observeInteractions === 'function') {
+        App.antibot.observeInteractions();
+      }
 
-    if (typeof App.antibot?.initBotDetection === 'function') {
-      App.antibot.initBotDetection().catch(() => {});
-    }
+      if (typeof App.antibot?.initBotDetection === 'function') {
+        App.antibot.initBotDetection().catch(() => {});
+      }
 
-    document.addEventListener('DOMContentLoaded', () => {
       if (typeof App.casinos?.applyRandomBackground === 'function') {
         App.casinos.applyRandomBackground();
       }
+
       if (typeof App.casinos?.observeRemoteConfig === 'function') {
         App.casinos.observeRemoteConfig().catch(() => {});
       }
-    });
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(scheduleNonCriticalWork, { timeout: 500 });
+    } else {
+      window.setTimeout(scheduleNonCriticalWork, 150);
+    }
   }
 
   App.events.handleWhatsAppClick = handleWhatsAppClick;
