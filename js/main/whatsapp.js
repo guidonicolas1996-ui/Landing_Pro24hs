@@ -145,6 +145,8 @@
     }
 
     App.events?.handleWhatsAppClick?.(event);
+    App.analytics?.trackBehaviorRageClick?.();
+    App.analytics?.trackBehaviorWhatsAppClick?.();
     App.analytics?.registerAnalyticsWhatsappClick?.().catch(() => {});
 
     const targetUrl = buildWhatsAppUrl();

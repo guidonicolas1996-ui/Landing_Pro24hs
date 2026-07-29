@@ -20,6 +20,9 @@
   App.state.whatsappButtonProgressActive = false;
   App.state.whatsappButtonReady = false;
   App.state.analyticsEvents = [];
+  App.state.pageLoadTime = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+    ? performance.now()
+    : Date.now();
   App.state.userInteractions = {
     mouseMovements: 0,
     scrolls: 0,
@@ -37,7 +40,9 @@
     vpnDetected: false
   };
   App.state.trustScore = 100;
-  App.state.pageLoadTime = Date.now();
+  App.state.pageLoadTime = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+    ? performance.now()
+    : Date.now();
 
   App.state.ensureFirebaseServices = async function ensureFirebaseServices() {
     if (App.state.firebaseServices) {

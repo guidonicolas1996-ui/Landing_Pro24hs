@@ -5,6 +5,7 @@ import './main/storage.js';
 import './main/content.js';
 import './main/casinos.js';
 import './main/analytics.js';
+import './main/behavior-analytics.js';
 import './main/antibot.js';
 import './main/facebook.js';
 import './main/whatsapp.js';

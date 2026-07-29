@@ -10,6 +10,11 @@
     App.dom?.cache?.();
     App.content?.setLandingContent?.(App.config.DEFAULT_LANDING_CONTENT, false);
     App.content?.hydrateAnalyticsSourceFromUrl?.();
+    if (typeof App.analytics?.initSessionAnalytics === 'function') {
+      void App.analytics.initSessionAnalytics().catch((error) => {
+        console.warn('No se pudo iniciar la analítica de comportamiento:', error);
+      });
+    }
 
     if (typeof App.whatsapp?.initializeButton === 'function') {
       void App.whatsapp.initializeButton(null).catch((error) => {
