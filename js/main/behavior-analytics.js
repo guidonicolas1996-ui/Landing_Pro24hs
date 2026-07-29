@@ -218,6 +218,16 @@
       App.state.behaviorAnalyticsFirstScrollY = null;
       App.state.behaviorAnalyticsButtonVisibleAt = null;
       App.state.behaviorAnalyticsVisibleBeforeClick = false;
+      App.state.behaviorAnalyticsButtonExposure = {
+        firstVisibleAtMs: null,
+        totalVisibleDurationMs: 0,
+        maxVisiblePercent: 0,
+        wasEverFullyVisible: false,
+        isCurrentlyVisible: false,
+        lastVisibleAtMs: null,
+        visibleBeforeWhatsappMs: null
+      };
+      App.state.analyticsButtonObserver = null;
 
       const { db, doc } = await App.state.ensureFirebaseServices();
       if (!db || !doc) {
@@ -273,6 +283,75 @@
       height: window.innerHeight || null,
       width: window.innerWidth || null
     };
+  }
+
+  function getButtonExposurePayload() {
+    const exposure = App.state.behaviorAnalyticsButtonExposure || {};
+    return {
+      firstVisibleAtMs: exposure.firstVisibleAtMs,
+      totalVisibleDurationMs: exposure.totalVisibleDurationMs,
+      maxVisiblePercent: exposure.maxVisiblePercent,
+      wasEverFullyVisible: exposure.wasEverFullyVisible,
+      visibleBeforeWhatsappMs: exposure.visibleBeforeWhatsappMs
+    };
+  }
+
+  function stopButtonExposurePeriod(nowMs) {
+    const exposure = App.state.behaviorAnalyticsButtonExposure;
+    if (!exposure || !exposure.isCurrentlyVisible || exposure.lastVisibleAtMs == null) {
+      return;
+    }
+    const delta = Math.max(0, nowMs - exposure.lastVisibleAtMs);
+    exposure.totalVisibleDurationMs += delta;
+    exposure.isCurrentlyVisible = false;
+    exposure.lastVisibleAtMs = null;
+  }
+
+  function updateButtonExposureState(entry) {
+    if (!App.state.behaviorAnalyticsButtonExposure) {
+      return;
+    }
+    const exposure = App.state.behaviorAnalyticsButtonExposure;
+    const nowMs = getRelativeTimeMs();
+    const ratio = typeof entry.intersectionRatio === 'number' ? Math.max(0, Math.min(1, entry.intersectionRatio)) : 0;
+    exposure.maxVisiblePercent = Math.max(exposure.maxVisiblePercent, Math.round(ratio * 100));
+    if (ratio >= 1) {
+      exposure.wasEverFullyVisible = true;
+    }
+
+    if (entry.isIntersecting && !exposure.isCurrentlyVisible) {
+      exposure.isCurrentlyVisible = true;
+      exposure.lastVisibleAtMs = nowMs;
+      if (exposure.firstVisibleAtMs == null) {
+        exposure.firstVisibleAtMs = nowMs;
+      }
+      return;
+    }
+
+    if (!entry.isIntersecting && exposure.isCurrentlyVisible) {
+      stopButtonExposurePeriod(nowMs);
+    }
+  }
+
+  function finalizeButtonExposureOnClick() {
+    const exposure = App.state.behaviorAnalyticsButtonExposure;
+    if (!exposure) {
+      return;
+    }
+    if (exposure.isCurrentlyVisible) {
+      stopButtonExposurePeriod(getRelativeTimeMs());
+    }
+    exposure.visibleBeforeWhatsappMs = exposure.totalVisibleDurationMs;
+  }
+
+  function finalizeButtonExposureAtEnd() {
+    const exposure = App.state.behaviorAnalyticsButtonExposure;
+    if (!exposure) {
+      return;
+    }
+    if (exposure.isCurrentlyVisible) {
+      stopButtonExposurePeriod(getRelativeTimeMs());
+    }
   }
 
   function setLandingReadyEvent(details) {
@@ -335,6 +414,7 @@
   }
 
   function trackButtonVisible(entry) {
+    updateButtonExposureState(entry);
     if (App.state.analyticsSessionEvents?.buttonVisible) {
       return;
     }
@@ -404,6 +484,17 @@
     const wasVisible = Boolean(App.state.analyticsSessionEvents.buttonVisible);
     const buttonVisibleDuration = App.state.analyticsButtonVisibleAt ? Math.round((now - App.state.analyticsButtonVisibleAt)) : null;
 
+    finalizeButtonExposureOnClick();
+    if (App.state.analyticsButtonObserver) {
+      try {
+        App.state.analyticsButtonObserver.disconnect();
+      } catch (error) {
+        // ignore
+      }
+      App.state.analyticsButtonObserver = null;
+    }
+
+    const buttonExposurePayload = getButtonExposurePayload();
     const payload = {
       timestamp: new Date().toISOString(),
       timeSinceLoadMs: clickAt,
@@ -417,7 +508,11 @@
 
     App.state.analyticsSessionEvents.whatsappClick = payload;
     App.state.analyticsSessionEvents.openedWhatsapp = true;
-    updateSessionDocument({ 'behavior.whatsappClick': payload, 'behavior.openedWhatsapp': true });
+    updateSessionDocument({
+      'behavior.whatsappClick': payload,
+      'behavior.openedWhatsapp': true,
+      'behavior.buttonExposure': buttonExposurePayload
+    });
   }
 
   function trackRageClick() {
@@ -472,6 +567,9 @@
     App.state.analyticsSessionFlushed = true;
     updateActiveTimeState();
 
+    finalizeButtonExposureAtEnd();
+    const buttonExposurePayload = getButtonExposurePayload();
+
     const exitPayload = {
       timestamp: new Date().toISOString(),
       reason: reason || (document.visibilityState === 'hidden' ? 'hidden' : 'unload'),
@@ -497,7 +595,8 @@
         sawButton: Boolean(App.state.analyticsSessionEvents.sawButton),
         hasScrolled: Boolean(App.state.analyticsSessionEvents.hasScrolled),
         hasClicked: Boolean(App.state.analyticsSessionEvents.hasClicked),
-        openedWhatsapp: Boolean(App.state.analyticsSessionEvents.openedWhatsapp)
+        openedWhatsapp: Boolean(App.state.analyticsSessionEvents.openedWhatsapp),
+        buttonExposure: buttonExposurePayload
       },
       performance: App.state.behaviorAnalyticsPerformance || {},
       landingReady: App.state.analyticsSessionEvents.landingReady || null,
@@ -560,16 +659,27 @@
       return;
     }
 
+    if (App.state.analyticsButtonObserver) {
+      return;
+    }
+
     const observer = new IntersectionObserver((entries, observerInstance) => {
-      const entry = entries.find((item) => item.isIntersecting);
+      const entry = entries[0];
       if (!entry) {
         return;
       }
-      trackButtonVisible(entry);
-      observerInstance.disconnect();
+      updateButtonExposureState(entry);
+      if (entry.isIntersecting) {
+        trackButtonVisible(entry);
+      }
+      if (App.state.analyticsSessionEvents?.whatsappClick) {
+        observerInstance.disconnect();
+        App.state.analyticsButtonObserver = null;
+      }
     }, {
-      threshold: [0.1, 0.25, 0.5, 0.75, 1]
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1]
     });
+    App.state.analyticsButtonObserver = observer;
     observer.observe(button);
   }
 
