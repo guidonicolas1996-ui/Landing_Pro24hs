@@ -56,7 +56,7 @@
       const analyticsRef = doc(db, App.config.ANALYTICS_COLLECTION, App.config.ANALYTICS_DOCUMENT);
       const now = new Date();
       const source = App.state.analyticsSource || 'primary';
-      console.log('[analytics] visit start', { visitorId, source, path: window.location.pathname, search: window.location.search });
+      //console.log('[analytics] visit start', { visitorId, source, path: window.location.pathname, search: window.location.search });
 
       const currentSnapshot = await getDoc(analyticsRef);
       const currentDocument = currentSnapshot.exists() ? currentSnapshot.data() : null;
@@ -68,16 +68,16 @@
         action: 'visit'
       });
 
-      console.log('[analytics] visit update payload', {
+      /*console.log('[analytics] visit update payload', {
         visitorId,
         source,
         totals: nextState.totals,
         visitorRecord: nextState.visitors[visitorId],
         bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
-      });
+      }); */
 
       await setDoc(analyticsRef, nextState, { merge: true });
-      console.log('[analytics] visit saved', { visitorId, ref: analyticsRef.path });
+      //console.log('[analytics] visit saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
       console.error('[analytics] failed visit registration', error);
     }
@@ -90,7 +90,7 @@
       const analyticsRef = doc(db, App.config.ANALYTICS_COLLECTION, App.config.ANALYTICS_DOCUMENT);
       const now = new Date();
       const source = App.state.analyticsSource || 'primary';
-      console.log('[analytics] whatsapp click start', { visitorId, source, path: window.location.pathname, search: window.location.search });
+      //console.log('[analytics] whatsapp click start', { visitorId, source, path: window.location.pathname, search: window.location.search });
 
       const currentSnapshot = await getDoc(analyticsRef);
       const currentDocument = currentSnapshot.exists() ? currentSnapshot.data() : null;
@@ -102,16 +102,16 @@
         action: 'whatsapp_click'
       });
 
-      console.log('[analytics] whatsapp click update payload', {
+      /*console.log('[analytics] whatsapp click update payload', {
         visitorId,
         source,
         totals: nextState.totals,
         visitorRecord: nextState.visitors[visitorId],
         bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
-      });
+      }); */
 
       await setDoc(analyticsRef, nextState, { merge: true });
-      console.log('[analytics] whatsapp click saved', { visitorId, ref: analyticsRef.path });
+      //console.log('[analytics] whatsapp click saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
       console.error('[analytics] failed whatsapp click registration', error);
     }

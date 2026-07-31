@@ -107,7 +107,7 @@ for (const file of files) {
     setDoc: async () => {}
   });
   const casinos = await context.App.storage.loadDynamicCasinos();
-  console.log(JSON.stringify({ built, casinoKeys: Object.keys(casinos), order: context.App.state.dynamicCasinoOrder }, null, 2));
+  //console.log(JSON.stringify({ built, casinoKeys: Object.keys(casinos), order: context.App.state.dynamicCasinoOrder }, null, 2));
 })().catch((error) => {
   console.error(error);
   process.exit(1);

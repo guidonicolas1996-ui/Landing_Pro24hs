@@ -157,15 +157,60 @@
   }
 
   async function updateSessionDocument(updatePayload) {
+    let sessionRef = null;
     try {
-      const sessionRef = getSessionDocRef();
+      sessionRef = getSessionDocRef();
       if (!sessionRef) {
+        console.warn('[Behavior Analytics] No sessionRef available for updateSessionDocument', {
+          sessionId: App.state.analyticsSessionId || null,
+          updatePayload
+        });
         return;
       }
-      const { setDoc } = await App.state.ensureFirebaseServices();
+
+      console.log('[Behavior Analytics] updateSessionDocument start', {
+        sessionId: App.state.analyticsSessionId || null,
+        sessionRefPath: sessionRef.path,
+        updatePayload
+      });
+
+      const services = await App.state.ensureFirebaseServices();
+      const { setDoc, getDoc } = services || {};
+      if (!setDoc) {
+        console.warn('[Behavior Analytics] setDoc unavailable in Firebase services', {
+          sessionId: App.state.analyticsSessionId || null,
+          sessionRefPath: sessionRef.path
+        });
+        return;
+      }
+
       await setDoc(sessionRef, updatePayload, { merge: true });
+      console.log('[Behavior Analytics] Session updated successfully', {
+        sessionId: App.state.analyticsSessionId || null,
+        sessionRefPath: sessionRef.path,
+        updatePayload
+      });
+
+      if (getDoc) {
+        const verificationSnapshot = await getDoc(sessionRef);
+        const behaviorWhatsappClick = verificationSnapshot?.exists?.() ? verificationSnapshot.data()?.behavior?.whatsappClick : undefined;
+        console.log('[Behavior Analytics] Session verification after update', {
+          sessionId: App.state.analyticsSessionId || null,
+          sessionRefPath: sessionRef.path,
+          containsBehaviorWhatsappClick: behaviorWhatsappClick !== undefined,
+          behaviorWhatsappClick
+        });
+      }
     } catch (error) {
-      console.warn('[behavior-analytics] error guardando sesion', error);
+      console.error('[Behavior Analytics] Session update failed', {
+        sessionId: App.state.analyticsSessionId || null,
+        sessionRefPath: sessionRef?.path || null,
+        updatePayload,
+        error,
+        firebaseCode: error?.code || null,
+        message: error?.message || null,
+        stack: error?.stack || null
+      });
     }
   }
 
@@ -479,6 +524,12 @@
   }
 
   function trackWhatsAppClick() {
+    const sessionRef = App.state.analyticsSessionDocRef || null;
+    console.log('[Behavior Analytics] trackWhatsAppClick entered', {
+      sessionId: App.state.analyticsSessionId || null,
+      sessionRefPath: sessionRef?.path || null
+    });
+
     const now = getTimestamp();
     const clickAt = getRelativeTimeMs();
     const wasVisible = Boolean(App.state.analyticsSessionEvents.buttonVisible);
@@ -506,13 +557,28 @@
       totalTaps: App.state.analyticsSessionEvents.totalTaps || 0
     };
 
+    console.log('[Behavior Analytics] trackWhatsAppClick payload ready', {
+      sessionId: App.state.analyticsSessionId || null,
+      sessionRefPath: sessionRef?.path || null,
+      payload,
+      buttonExposurePayload
+    });
+
     App.state.analyticsSessionEvents.whatsappClick = payload;
     App.state.analyticsSessionEvents.openedWhatsapp = true;
-    updateSessionDocument({
+    const updatePayload = {
       'behavior.whatsappClick': payload,
       'behavior.openedWhatsapp': true,
       'behavior.buttonExposure': buttonExposurePayload
+    };
+
+    console.log('[Behavior Analytics] trackWhatsAppClick writing session update', {
+      sessionId: App.state.analyticsSessionId || null,
+      sessionRefPath: sessionRef?.path || null,
+      updatePayload
     });
+
+    updateSessionDocument(updatePayload);
   }
 
   function trackRageClick() {

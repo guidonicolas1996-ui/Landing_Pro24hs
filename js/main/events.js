@@ -15,19 +15,19 @@
     }
 
     if (window.fbEventTrackerState.leadSent) {
-      console.log('FB Pixel: Evento duplicado bloqueado.');
+      //console.log('FB Pixel: Evento duplicado bloqueado.');
       return false;
     }
 
     window.fbEventTrackerState.leadSent = true;
-    console.log('FB Pixel: Enviando evento único de conversión...');
-
+    //console.log('FB Pixel: Enviando evento único de conversión...');
+    /*
     if (typeof fbq === 'function') {
       fbq('track', 'Lead', {
         content_name: 'whatsapp_click',
         content_type: 'lead'
       });
-    }
+    } */
 
     return true;
   }
