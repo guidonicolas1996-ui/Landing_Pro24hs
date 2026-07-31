@@ -28,7 +28,7 @@
           const defaultCasino = App.casinos.getDefaultCasino?.() || App.state.activeTheme || 'casino_1';
           App.casinos.applyTheme(defaultCasino, { animate: false });
         }
-
+        
         if (typeof App.casinos?.applyRandomBackground === 'function') {
           App.casinos.applyRandomBackground();
         }

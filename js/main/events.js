@@ -45,7 +45,7 @@
       if (typeof App.antibot?.initBotDetection === 'function') {
         App.antibot.initBotDetection().catch(() => {});
       }
-
+      
       if (typeof App.casinos?.applyRandomBackground === 'function') {
         App.casinos.applyRandomBackground();
       }
