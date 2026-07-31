@@ -72,11 +72,10 @@
         visitorId,
         source,
         totals: nextState.totals,
-        visitorRecord: nextState.visitors[visitorId],
         bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
       }); */
 
-      await setDoc(analyticsRef, nextState, { merge: true });
+      await setDoc(analyticsRef, nextState);
       //console.log('[analytics] visit saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
       console.error('[analytics] failed visit registration', error);
@@ -106,11 +105,10 @@
         visitorId,
         source,
         totals: nextState.totals,
-        visitorRecord: nextState.visitors[visitorId],
         bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
       }); */
 
-      await setDoc(analyticsRef, nextState, { merge: true });
+      await setDoc(analyticsRef, nextState);
       //console.log('[analytics] whatsapp click saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
       console.error('[analytics] failed whatsapp click registration', error);
