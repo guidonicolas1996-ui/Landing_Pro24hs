@@ -9,10 +9,20 @@
     if (elements.accessBadge) elements.accessBadge.textContent = content.accessBadge;
     if (elements.heroBonusLinePercent || elements.heroBonusLineText) {
       const bonusLineValue = content.heroBonusLine || '';
-      const bonusLineParts = String(bonusLineValue).trim().split(/\s+(?=.+)/);
-      const percentValue = bonusLineParts[0] || '100%';
-      const textValue = bonusLineParts.slice(1).join(' ') || 'DE BONO';
-      const displayedText = '\u00A0' + textValue.trimStart();
+      const normalizedValue = String(bonusLineValue).trim();
+      const firstSpaceIndex = normalizedValue.search(/\s/);
+
+      let percentValue = '100%';
+      let textValue = '';
+
+      if (firstSpaceIndex === -1) {
+        percentValue = normalizedValue || '100%';
+      } else {
+        percentValue = normalizedValue.slice(0, firstSpaceIndex) || '100%';
+        textValue = normalizedValue.slice(firstSpaceIndex).trim() || 'DE BONO';
+      }
+
+      const displayedText = textValue ? '\u00A0' + textValue.trimStart() : '';
       if (elements.heroBonusLinePercent) elements.heroBonusLinePercent.textContent = percentValue;
       if (elements.heroBonusLineText) elements.heroBonusLineText.textContent = displayedText;
     }

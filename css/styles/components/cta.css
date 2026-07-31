@@ -15,7 +15,7 @@ WhatsApp CTA
   padding: 1rem 1.5rem;
   color: #ffffff;
   font-weight: 800;
-  font-size: clamp(1rem, 1.8vw, 1.18rem);
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
   letter-spacing: 0.03em;
   background: linear-gradient(135deg, #12b04b 0%, #0faa4b 55%, #19e160 100%);
   background-size: 240% 240%;

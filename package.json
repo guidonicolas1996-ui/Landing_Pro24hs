@@ -2,6 +2,7 @@
   "name": "landing-css-production",
   "private": true,
   "scripts": {
-    "build:css": "node scripts/build-css.js"
+    "build:css": "node scripts/build-css.js",
+    "watch:css": "node scripts/watch-css.js"
   }
 }

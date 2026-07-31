@@ -68,12 +68,32 @@ function minifyCss(content) {
     .trim();
 }
 
+function updateHtmlStylesheetVersion() {
+  const htmlPath = path.join(root, 'index.html');
+  if (!fs.existsSync(htmlPath)) {
+    return;
+  }
+
+  const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+  const version = Date.now().toString();
+  const updatedHtml = htmlContent.replace(/(css\/styles\.production\.css)(\?v=[^"']*)?/g, `$1?v=${version}`);
+
+  if (updatedHtml !== htmlContent) {
+    fs.writeFileSync(htmlPath, updatedHtml, 'utf8');
+  }
+}
+
 function build() {
   const files = collectCssFiles(input);
   const combined = files.map((item) => item.content).join('\n\n');
   const minified = minifyCss(combined);
   fs.writeFileSync(output, minified, 'utf8');
+  updateHtmlStylesheetVersion();
   console.log('CSS production generated');
 }
 
-build();
+if (require.main === module) {
+  build();
+}
+
+module.exports = { build };
