@@ -407,7 +407,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 0.025em rgba(242, 200, 91, 0.85);
+  -webkit-text-stroke: 0.025em rgba(197, 162, 75, 0.85);
   paint-order: stroke fill;
   transition: background 1s ease, color 1s ease;
 }
