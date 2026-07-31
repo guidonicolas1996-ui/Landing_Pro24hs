@@ -84,6 +84,85 @@ function cloneBucket(source = {}) {
   return bucket;
 }
 
+function getSeenVisitorStorageKey() {
+  return 'futurevip:analytics:seenVisitors';
+}
+
+function getSeenWhatsappStorageKey() {
+  return 'futurevip:analytics:seenWhatsappVisitors';
+}
+
+function readStoredVisitorIds(storageKey) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(storageKey);
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeStoredVisitorIds(storageKey, visitorIds) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(visitorIds));
+  } catch (error) {
+    // ignore storage failures
+  }
+}
+
+function isFirstVisitForVisitor(visitorId) {
+  const normalizedVisitorId = String(visitorId || '').trim();
+  if (!normalizedVisitorId) {
+    return true;
+  }
+
+  const seenVisitors = readStoredVisitorIds(getSeenVisitorStorageKey());
+  if (seenVisitors.includes(normalizedVisitorId)) {
+    return false;
+  }
+
+  const nextSeenVisitors = [...seenVisitors, normalizedVisitorId];
+  writeStoredVisitorIds(getSeenVisitorStorageKey(), nextSeenVisitors.slice(-200));
+  return true;
+}
+
+function hasClickedWhatsappForVisitor(visitorId) {
+  const normalizedVisitorId = String(visitorId || '').trim();
+  if (!normalizedVisitorId) {
+    return false;
+  }
+
+  const clickedVisitors = readStoredVisitorIds(getSeenWhatsappStorageKey());
+  return clickedVisitors.includes(normalizedVisitorId);
+}
+
+function markWhatsappClickedForVisitor(visitorId) {
+  const normalizedVisitorId = String(visitorId || '').trim();
+  if (!normalizedVisitorId) {
+    return;
+  }
+
+  const clickedVisitors = readStoredVisitorIds(getSeenWhatsappStorageKey());
+  if (clickedVisitors.includes(normalizedVisitorId)) {
+    return;
+  }
+
+  const nextClickedVisitors = [...clickedVisitors, normalizedVisitorId];
+  writeStoredVisitorIds(getSeenWhatsappStorageKey(), nextClickedVisitors.slice(-200));
+}
+
 function normalizeSource(rawSource) {
   const source = String(rawSource ?? '').trim().toLowerCase();
   if (!source || source === 'primary' || source === 'main' || source === 'principal') {
@@ -145,7 +224,6 @@ function getMetricsForSource(source) {
 export function createEmptyAnalyticsDocument() {
   return {
     totals: createEmptyTotals(),
-    visitors: {},
     buckets: {}
   };
 }
@@ -154,7 +232,6 @@ export function normalizeAnalyticsDocument(data) {
   const source = data && typeof data === 'object' ? data : {};
   const normalized = createEmptyAnalyticsDocument();
   normalized.totals = cloneTotals(source.totals || {});
-  normalized.visitors = source.visitors && typeof source.visitors === 'object' ? source.visitors : {};
   normalized.buckets = source.buckets && typeof source.buckets === 'object' ? source.buckets : {};
   return normalized;
 }
@@ -162,7 +239,6 @@ export function normalizeAnalyticsDocument(data) {
 export function buildAnalyticsDocumentUpdate(currentDocument, { visitorId, now, source, action }) {
   const normalizedDoc = normalizeAnalyticsDocument(currentDocument);
   const totals = cloneTotals(normalizedDoc.totals);
-  const visitors = { ...(normalizedDoc.visitors || {}) };
   const buckets = { ...(normalizedDoc.buckets || {}) };
   const resolvedSource = normalizeSource(source);
   const metrics = getMetricsForSource(resolvedSource);
@@ -176,9 +252,8 @@ export function buildAnalyticsDocumentUpdate(currentDocument, { visitorId, now, 
     ? cloneBucket(bucketDay[hourKey])
     : createEmptyBucket();
 
-  const existingVisitor = visitors[visitorId] && typeof visitors[visitorId] === 'object' ? visitors[visitorId] : null;
-  const isFirstVisit = !existingVisitor || (existingVisitor.visits || 0) === 0;
-  const isFirstWhatsappClick = action === 'whatsapp_click' && !existingVisitor?.hasClickedWhatsapp;
+  const isFirstVisit = isFirstVisitForVisitor(visitorId);
+  const isFirstWhatsappClick = action === 'whatsapp_click' && !hasClickedWhatsappForVisitor(visitorId);
 
   totals.totalVisits += 1;
   totals[metrics.visitField] += 1;
@@ -213,37 +288,12 @@ export function buildAnalyticsDocumentUpdate(currentDocument, { visitorId, now, 
   bucketDay[hourKey] = currentBucket;
   buckets[dateKey] = bucketDay;
 
-  const visitorRecord = {
-    ...(existingVisitor || {}),
-    firstSeen: existingVisitor?.firstSeen || eventDate.toISOString(),
-    lastSeen: eventDate.toISOString(),
-    visits: (existingVisitor?.visits || 0) + 1,
-    lastSource: resolvedSource,
-    hasClickedWhatsapp: Boolean(existingVisitor?.hasClickedWhatsapp || action === 'whatsapp_click' && !isFirstWhatsappClick ? true : existingVisitor?.hasClickedWhatsapp)
-  };
-
-  if (action === 'whatsapp_click') {
-    visitorRecord.whatsappClicks = (existingVisitor?.whatsappClicks || 0) + 1;
-    visitorRecord.lastWhatsappClickAt = eventDate.toISOString();
-    visitorRecord.hasClickedWhatsapp = true;
+  if (action === 'whatsapp_click' && isFirstWhatsappClick) {
+    markWhatsappClickedForVisitor(visitorId);
   }
-
-  visitors[visitorId] = visitorRecord;
 
   return {
     totals,
-    visitors,
-    buckets,
-    legacyPayload: {
-      [visitorId]: {
-        visitedAt: action === 'visit' ? eventDate.toISOString() : existingVisitor?.firstSeen || eventDate.toISOString(),
-        lastVisitedAt: eventDate.toISOString(),
-        lastWhatsappClickAt: action === 'whatsapp_click' ? eventDate.toISOString() : existingVisitor?.lastWhatsappClickAt || null,
-        source: resolvedSource,
-        visitCount: visitorRecord.visits,
-        whatsappClickCount: visitorRecord.whatsappClicks || 0,
-        hasClickedWhatsapp: visitorRecord.hasClickedWhatsapp || false
-      }
-    }
+    buckets
   };
 }
