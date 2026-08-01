@@ -149,9 +149,9 @@
     App.analytics?.trackBehaviorWhatsAppClick?.();
     App.analytics?.registerAnalyticsWhatsappClick?.().catch(() => {});
 
-    /*if (typeof fbq === 'function') {
+    if (typeof fbq === 'function') {
       fbq('track', 'CompleteRegistration');
-    }*/
+    }
 
     const targetUrl = buildWhatsAppUrl();
     window.location.href = targetUrl;
