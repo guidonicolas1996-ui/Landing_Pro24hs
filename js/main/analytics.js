@@ -51,7 +51,7 @@
 
   async function registerAnalyticsVisit() {
     try {
-      const { db, doc, getDoc, setDoc } = await App.state.ensureFirebaseServices();
+      const { db, doc, getDoc, setDoc, deleteDoc } = await App.state.ensureFirebaseServices();
       const visitorId = await getPersistentVisitorId();
       const analyticsRef = doc(db, App.config.ANALYTICS_COLLECTION, App.config.ANALYTICS_DOCUMENT);
       const now = new Date();
@@ -60,7 +60,7 @@
 
       const currentSnapshot = await getDoc(analyticsRef);
       const currentDocument = currentSnapshot.exists() ? currentSnapshot.data() : null;
-      const { createEmptyAnalyticsDocument, buildAnalyticsDocumentUpdate } = await import('./analytics-logic.mjs');
+      const { createEmptyAnalyticsDocument, buildAnalyticsDocumentUpdate, isFirestoreIndexEntryError } = await import('./analytics-logic.mjs');
       const nextState = buildAnalyticsDocumentUpdate(currentDocument || createEmptyAnalyticsDocument(), {
         visitorId,
         now,
@@ -68,14 +68,21 @@
         action: 'visit'
       });
 
-      /*console.log('[analytics] visit update payload', {
-        visitorId,
-        source,
-        totals: nextState.totals,
-        bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
-      }); */
-
-      await setDoc(analyticsRef, nextState);
+      try {
+        await setDoc(analyticsRef, nextState);
+      } catch (error) {
+        if (isFirestoreIndexEntryError(error)) {
+          console.warn('[analytics] retrying visit registration after clearing oversized document', error);
+          try {
+            await deleteDoc(analyticsRef);
+          } catch (cleanupError) {
+            console.warn('[analytics] could not delete oversized analytics document before retry', cleanupError);
+          }
+          await setDoc(analyticsRef, nextState);
+        } else {
+          throw error;
+        }
+      }
       //console.log('[analytics] visit saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
       console.error('[analytics] failed visit registration', error);
@@ -84,7 +91,7 @@
 
   async function registerAnalyticsWhatsappClick() {
     try {
-      const { db, doc, getDoc, setDoc } = await App.state.ensureFirebaseServices();
+      const { db, doc, getDoc, setDoc, deleteDoc } = await App.state.ensureFirebaseServices();
       const visitorId = await getPersistentVisitorId();
       const analyticsRef = doc(db, App.config.ANALYTICS_COLLECTION, App.config.ANALYTICS_DOCUMENT);
       const now = new Date();
@@ -93,7 +100,7 @@
 
       const currentSnapshot = await getDoc(analyticsRef);
       const currentDocument = currentSnapshot.exists() ? currentSnapshot.data() : null;
-      const { createEmptyAnalyticsDocument, buildAnalyticsDocumentUpdate } = await import('./analytics-logic.mjs');
+      const { createEmptyAnalyticsDocument, buildAnalyticsDocumentUpdate, isFirestoreIndexEntryError } = await import('./analytics-logic.mjs');
       const nextState = buildAnalyticsDocumentUpdate(currentDocument || createEmptyAnalyticsDocument(), {
         visitorId,
         now,
@@ -108,7 +115,21 @@
         bucket: nextState.buckets[`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`]?.[String(now.getHours()).padStart(2, '0')]
       }); */
 
-      await setDoc(analyticsRef, nextState);
+      try {
+        await setDoc(analyticsRef, nextState);
+      } catch (error) {
+        if (isFirestoreIndexEntryError(error)) {
+          console.warn('[analytics] retrying whatsapp registration after clearing oversized document', error);
+          try {
+            await deleteDoc(analyticsRef);
+          } catch (cleanupError) {
+            console.warn('[analytics] could not delete oversized analytics document before retry', cleanupError);
+          }
+          await setDoc(analyticsRef, nextState);
+        } else {
+          throw error;
+        }
+      }
       //console.log('[analytics] whatsapp click saved', { visitorId, ref: analyticsRef.path });
     } catch (error) {
       console.error('[analytics] failed whatsapp click registration', error);

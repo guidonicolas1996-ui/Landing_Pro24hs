@@ -228,6 +228,11 @@ export function createEmptyAnalyticsDocument() {
   };
 }
 
+export function isFirestoreIndexEntryError(error) {
+  const message = [error?.message, error?.code, error?.toString?.()].filter(Boolean).join(' ');
+  return /too many index entries/i.test(message) || /index entries/i.test(message);
+}
+
 export function normalizeAnalyticsDocument(data) {
   const source = data && typeof data === 'object' ? data : {};
   const normalized = createEmptyAnalyticsDocument();
