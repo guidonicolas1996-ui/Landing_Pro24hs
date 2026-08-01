@@ -140,14 +140,6 @@
     return payload;
   }
 
-  function trackWhatsAppClick() {
-    App.analytics.trackEvent('Lead', {
-      content_name: 'whatsapp_click',
-      content_type: 'lead',
-      event_category: 'engagement'
-    });
-  }
-
   App.analytics.trackEvent = trackEvent;
   App.analytics.trackConversion = trackConversion;
   App.analytics.trackWhatsAppClick = trackWhatsAppClick;

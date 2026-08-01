@@ -150,7 +150,7 @@
     App.analytics?.registerAnalyticsWhatsappClick?.().catch(() => {});
 
     if (typeof fbq === 'function') {
-      fbq('track', 'CompleteRegistration');
+      //fbq('track', 'CompleteRegistration');
     }
 
     const targetUrl = buildWhatsAppUrl();
