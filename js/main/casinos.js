@@ -446,10 +446,6 @@
     document.body.setAttribute('data-theme', safeCasino);
     setStoredActiveCasino(safeCasino);
 
-    if (typeof App.casinos?.applyRandomBackground === 'function') {
-      App.casinos.applyRandomBackground();
-    }
-
     const mascot = document.getElementById('active-mascot') || document.querySelector('.mascot-carousel__item--center');
     const cards = document.querySelectorAll('[data-theme-card]');
 
