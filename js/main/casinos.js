@@ -446,6 +446,11 @@
     document.body.setAttribute('data-theme', safeCasino);
     setStoredActiveCasino(safeCasino);
 
+    // Mantener el fondo fijo tras la carga inicial; el cambio aleatorio solo se aplica una vez en el arranque.
+    // if (typeof App.casinos?.applyRandomBackground === 'function') {
+    //   App.casinos.applyRandomBackground();
+    // }
+
     const mascot = document.getElementById('active-mascot') || document.querySelector('.mascot-carousel__item--center');
     const cards = document.querySelectorAll('[data-theme-card]');
 

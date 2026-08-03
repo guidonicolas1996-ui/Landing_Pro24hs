@@ -45,6 +45,11 @@
       if (typeof App.antibot?.initBotDetection === 'function') {
         App.antibot.initBotDetection().catch(() => {});
       }
+      
+      // Mantener el fondo fijo tras la carga inicial; el cambio aleatorio solo se aplica una vez en el arranque.
+      // if (typeof App.casinos?.applyRandomBackground === 'function') {
+      //   App.casinos.applyRandomBackground();
+      // }
 
       if (typeof App.casinos?.observeRemoteConfig === 'function') {
         App.casinos.observeRemoteConfig().catch(() => {});
