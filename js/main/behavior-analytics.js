@@ -168,7 +168,7 @@
         return;
       }
 
-      console.log('[Behavior Analytics] updateSessionDocument start', {
+      //console.log('[Behavior Analytics] updateSessionDocument start', {
         sessionId: App.state.analyticsSessionId || null,
         sessionRefPath: sessionRef.path,
         updatePayload
@@ -185,7 +185,7 @@
       }
 
       await setDoc(sessionRef, updatePayload, { merge: true });
-      console.log('[Behavior Analytics] Session updated successfully', {
+      //console.log('[Behavior Analytics] Session updated successfully', {
         sessionId: App.state.analyticsSessionId || null,
         sessionRefPath: sessionRef.path,
         updatePayload
@@ -194,7 +194,7 @@
       if (getDoc) {
         const verificationSnapshot = await getDoc(sessionRef);
         const behaviorWhatsappClick = verificationSnapshot?.exists?.() ? verificationSnapshot.data()?.behavior?.whatsappClick : undefined;
-        console.log('[Behavior Analytics] Session verification after update', {
+        //console.log('[Behavior Analytics] Session verification after update', {
           sessionId: App.state.analyticsSessionId || null,
           sessionRefPath: sessionRef.path,
           containsBehaviorWhatsappClick: behaviorWhatsappClick !== undefined,
@@ -525,7 +525,7 @@
 
   function trackWhatsAppClick() {
     const sessionRef = App.state.analyticsSessionDocRef || null;
-    console.log('[Behavior Analytics] trackWhatsAppClick entered', {
+    //console.log('[Behavior Analytics] trackWhatsAppClick entered', {
       sessionId: App.state.analyticsSessionId || null,
       sessionRefPath: sessionRef?.path || null
     });
@@ -557,7 +557,7 @@
       totalTaps: App.state.analyticsSessionEvents.totalTaps || 0
     };
 
-    console.log('[Behavior Analytics] trackWhatsAppClick payload ready', {
+    //console.log('[Behavior Analytics] trackWhatsAppClick payload ready', {
       sessionId: App.state.analyticsSessionId || null,
       sessionRefPath: sessionRef?.path || null,
       payload,
@@ -572,7 +572,7 @@
       'behavior.buttonExposure': buttonExposurePayload
     };
 
-    console.log('[Behavior Analytics] trackWhatsAppClick writing session update', {
+    //console.log('[Behavior Analytics] trackWhatsAppClick writing session update', {
       sessionId: App.state.analyticsSessionId || null,
       sessionRefPath: sessionRef?.path || null,
       updatePayload

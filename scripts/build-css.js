@@ -89,7 +89,7 @@ function build() {
   const minified = minifyCss(combined);
   fs.writeFileSync(output, minified, 'utf8');
   updateHtmlStylesheetVersion();
-  console.log('CSS production generated');
+  //console.log('CSS production generated');
 }
 
 if (require.main === module) {

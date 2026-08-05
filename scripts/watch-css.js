@@ -14,7 +14,7 @@ function queueBuild() {
   }
 
   buildTimer = setTimeout(() => {
-    console.log('Detected CSS change, regenerating...');
+    //console.log('Detected CSS change, regenerating...');
     build();
   }, 200);
 }
@@ -49,10 +49,10 @@ function watchDirectory(dir) {
   }
 }
 
-console.log(`Watching CSS files in ${cssRoot}...`);
+//console.log(`Watching CSS files in ${cssRoot}...`);
 watchDirectory(cssRoot);
 build();
-console.log('Watching for CSS changes...');
+//console.log('Watching for CSS changes...');
 
 process.on('SIGINT', () => {
   watchers.forEach((watcher) => watcher.close());

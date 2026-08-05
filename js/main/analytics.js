@@ -108,7 +108,7 @@
         action: 'whatsapp_click'
       });
 
-      /*console.log('[analytics] whatsapp click update payload', {
+      /*//console.log('[analytics] whatsapp click update payload', {
         visitorId,
         source,
         totals: nextState.totals,
